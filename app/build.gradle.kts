@@ -17,8 +17,14 @@ val localProperties = Properties().apply {
     val file = rootProject.file("local.properties")
     if (file.exists()) file.inputStream().use { load(it) }
 }
-val devServerHost: String = localProperties.getProperty("server.host") ?: "10.0.2.2"
-val devServerPort: String = localProperties.getProperty("server.port") ?: "8080"
+// -Pserver.host=localhost 처럼 한 번만 다르게 빌드하고 싶을 때는 Gradle 속성이 이긴다.
+// local.properties 를 고쳤다 되돌리지 않아도 된다.
+val devServerHost: String = providers.gradleProperty("server.host").orNull
+    ?: localProperties.getProperty("server.host")
+    ?: "10.0.2.2"
+val devServerPort: String = providers.gradleProperty("server.port").orNull
+    ?: localProperties.getProperty("server.port")
+    ?: "8080"
 
 android {
     namespace = "com.carnation.fallalert"

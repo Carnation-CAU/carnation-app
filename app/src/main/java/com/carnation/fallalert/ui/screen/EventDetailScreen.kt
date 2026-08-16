@@ -55,6 +55,10 @@ import com.carnation.fallalert.model.FallEvent
 import com.carnation.fallalert.model.PresenceState
 import com.carnation.fallalert.ui.EventDetailUiState
 import com.carnation.fallalert.ui.theme.CarnationTheme
+import com.carnation.fallalert.ui.theme.Elevation
+import com.carnation.fallalert.ui.theme.Radius
+import com.carnation.fallalert.ui.theme.Space
+import com.carnation.fallalert.ui.theme.TouchTarget
 import com.carnation.fallalert.util.detectedAtInstant
 import com.carnation.fallalert.util.formatSeconds
 import com.carnation.fallalert.util.motionLabel
@@ -160,49 +164,54 @@ private fun DetailContent(
         Spacer(Modifier.height(28.dp))
 
         if (record.confirmation == null) {
+            // 명세 8장이 2버튼을 요구하므로 버튼 수는 줄이지 않는다. 대신 **주 CTA 는 하나**로
+            // 만든다: 도움 요청은 채운 코랄, 정상은 톤다운된 블루. 둘 다 채우면 보호자가
+            // 급할 때 어디를 눌러야 할지 한 번 더 생각하게 된다.
             Text(
-                text = "확인해 주세요",
+                text = "어떤 상황인가요?",
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onBackground,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Spacer(Modifier.height(12.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            Spacer(Modifier.height(Space.md))
+            Button(
+                onClick = { onConfirm(Confirmation.HELP_NEEDED) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = TouchTarget.primaryAction),
+                shape = Radius.button,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                ),
             ) {
-                Button(
-                    onClick = { onConfirm(Confirmation.NORMAL) },
-                    modifier = Modifier
-                        .weight(1f)
-                        .heightIn(min = 68.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.secondary,
-                        contentColor = MaterialTheme.colorScheme.onSecondary,
-                    ),
-                ) {
-                    Text("정상")
-                }
-                Button(
-                    onClick = { onConfirm(Confirmation.HELP_NEEDED) },
-                    modifier = Modifier
-                        .weight(1f)
-                        .heightIn(min = 68.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                    ),
-                ) {
-                    Text("도움 필요")
-                }
+                Text("도움이 필요해요")
+            }
+            Spacer(Modifier.height(Space.md))
+            Button(
+                onClick = { onConfirm(Confirmation.NORMAL) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = TouchTarget.primaryAction),
+                shape = Radius.button,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                ),
+            ) {
+                Text("정상이에요")
             }
         } else {
             AlreadyConfirmedNotice(record.confirmation, pendingSync)
         }
 
         Spacer(Modifier.height(8.dp))
-        TextButton(onClick = onBackToList) {
+        // 경고색(코랄)을 쓰지 않는다. 단순 이동 링크라 위험 신호와 구분되어야 한다.
+        TextButton(
+            onClick = onBackToList,
+            colors = ButtonDefaults.textButtonColors(
+                contentColor = MaterialTheme.colorScheme.secondary,
+            ),
+        ) {
             Text("목록으로")
         }
     }
@@ -212,7 +221,8 @@ private fun DetailContent(
 private fun RiskCard(riskScore: Double) {
     Surface(
         color = MaterialTheme.colorScheme.primaryContainer,
-        shape = RoundedCornerShape(20.dp),
+        shape = Radius.card,
+        shadowElevation = Elevation.card,
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(
@@ -261,7 +271,8 @@ private fun EvidenceCard(event: FallEvent) {
     val evidence = event.evidence
     Surface(
         color = MaterialTheme.colorScheme.surface,
-        shape = RoundedCornerShape(20.dp),
+        shape = Radius.card,
+        shadowElevation = Elevation.card,
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(Modifier.padding(20.dp)) {
@@ -421,7 +432,14 @@ private fun NotFoundState(onBackToList: () -> Unit, modifier: Modifier = Modifie
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(16.dp))
-        TextButton(onClick = onBackToList) { Text("목록으로") }
+        TextButton(
+            onClick = onBackToList,
+            colors = ButtonDefaults.textButtonColors(
+                contentColor = MaterialTheme.colorScheme.secondary,
+            ),
+        ) {
+            Text("목록으로")
+        }
     }
 }
 
