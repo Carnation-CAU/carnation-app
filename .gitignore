@@ -1,13 +1,36 @@
-*.iml
+# Gradle / Kotlin build outputs and caches
 .gradle/
-/local.properties
-/.idea/
-.DS_Store
-/build
-/app/build
-/captures
-.externalNativeBuild
-.cxx
+.kotlin/
+build/
+out/
+
+# Android Studio / IntelliJ local state
+.idea/
+*.iml
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Local SDK paths, secrets, and environment overrides
 local.properties
-/app/google-services.json
-.claude
+.env
+.env.*
+!.env.example
+app/google-services.json
+
+# Local AI coding-assistant state
+.claude/
+.codex/
+.agents/
+.cursor/
+.continue/
+.windsurf/
+
+# Carnation local runtime state
+.carnation-local/
+*.log
+*.pid
+
+# Operating-system metadata
+.DS_Store
+Thumbs.db
