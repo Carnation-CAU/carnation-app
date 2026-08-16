@@ -1,0 +1,6 @@
+p14:20:22.925 INFO  io.ktor.test - No ktor.deployment.watch patterns specified, automatic reload is not active.
+`14:20:23.383 INFO  io.ktor.test - 낙상 의심 알림 서버 시작 — 시드 이벤트 4건
+I14:20:23.387 INFO  io.ktor.test - Application started in 0.519 seconds.
+h14:20:23.388 INFO  io.ktor.test - Application started: io.ktor.server.application.Application@668ecd73
+E14:20:23.393 INFO  io.ktor.test - Responding at http://localhost:80
+G14:20:23.394 INFO  io.ktor.test - Responding at https://localhost:443

@@ -19,9 +19,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.DirectionsRun
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.DirectionsRun
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material.icons.filled.Warning
@@ -48,6 +48,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.carnation.fallalert.model.Confirmation
+
 import com.carnation.fallalert.model.EventRecord
 import com.carnation.fallalert.model.Evidence
 import com.carnation.fallalert.model.FallEvent
@@ -55,12 +56,12 @@ import com.carnation.fallalert.model.PresenceState
 import com.carnation.fallalert.ui.EventDetailUiState
 import com.carnation.fallalert.ui.theme.CarnationTheme
 import com.carnation.fallalert.util.detectedAtInstant
+import com.carnation.fallalert.util.formatSeconds
 import com.carnation.fallalert.util.motionLabel
 import com.carnation.fallalert.util.presenceLabel
 import com.carnation.fallalert.util.roomLabel
 import com.carnation.fallalert.util.toAbsoluteKorean
 import com.carnation.fallalert.util.toPercent
-import kotlin.math.roundToInt
 
 /** 화면 B — 상세 */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -102,7 +103,7 @@ fun EventDetailScreen(
                     NotFoundState(onBackToList, Modifier.align(Alignment.Center))
 
                 is EventDetailUiState.Ready ->
-                    DetailContent(state.record, onConfirm, onBackToList)
+                    DetailContent(state.record, state.pendingSync, onConfirm, onBackToList)
             }
         }
     }
@@ -111,6 +112,7 @@ fun EventDetailScreen(
 @Composable
 private fun DetailContent(
     record: EventRecord,
+    pendingSync: Boolean,
     onConfirm: (Confirmation) -> Unit,
     onBackToList: () -> Unit,
 ) {
@@ -196,7 +198,7 @@ private fun DetailContent(
                 }
             }
         } else {
-            AlreadyConfirmedNotice(record.confirmation)
+            AlreadyConfirmedNotice(record.confirmation, pendingSync)
         }
 
         Spacer(Modifier.height(8.dp))
@@ -271,7 +273,7 @@ private fun EvidenceCard(event: FallEvent) {
             Spacer(Modifier.height(12.dp))
 
             EvidenceRow(
-                icon = Icons.Filled.DirectionsRun,
+                icon = Icons.AutoMirrored.Filled.DirectionsRun,
                 label = "움직임",
                 value = motionLabel(evidence.motionLabel),
                 detail = "${evidence.motionConfidence.toPercent()}%",
@@ -342,8 +344,9 @@ private fun EvidenceRow(
 }
 
 @Composable
-private fun AlreadyConfirmedNotice(confirmation: Confirmation) {
+private fun AlreadyConfirmedNotice(confirmation: Confirmation, pendingSync: Boolean) {
     val isNormal = confirmation == Confirmation.NORMAL
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
     Surface(
         color = if (isNormal) {
             MaterialTheme.colorScheme.secondaryContainer
@@ -379,6 +382,31 @@ private fun AlreadyConfirmedNotice(confirmation: Confirmation) {
             )
         }
     }
+
+        if (pendingSync) {
+            Spacer(Modifier.height(10.dp))
+            SyncStatusText(pendingSync = true)
+        }
+    }
+}
+
+/**
+ * 확인 결과가 서버에 갔는지. 보호자에게 "보냈다"고 말해 놓고 실제로는 큐에 있는 상태가
+ * 제일 위험하므로, 전송 전과 후를 다른 문구로 구분한다.
+ */
+@Composable
+fun SyncStatusText(pendingSync: Boolean, modifier: Modifier = Modifier) {
+    Text(
+        text = if (pendingSync) {
+            "아직 전송하지 못했어요. 연결되면 자동으로 다시 보냅니다."
+        } else {
+            "서버에 전달했어요."
+        },
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+        modifier = modifier,
+    )
 }
 
 @Composable
@@ -397,23 +425,20 @@ private fun NotFoundState(onBackToList: () -> Unit, modifier: Modifier = Modifie
     }
 }
 
-/** 4.0 → "4", 1.5 → "1.5" */
-private fun formatSeconds(seconds: Double): String =
-    if (seconds % 1.0 == 0.0) seconds.roundToInt().toString() else seconds.toString()
-
 @Preview(showBackground = true, heightDp = 1100)
 @Composable
 private fun EventDetailPreview() {
     CarnationTheme {
         EventDetailScreen(
             state = EventDetailUiState.Ready(
-                EventRecord(
+                record = EventRecord(
                     FallEvent(
                         "1.0", "fall_suspected", "trial-01:7", "2026-08-05T10:30:00+09:00",
                         "living-room", 0.9,
                         Evidence("fall_like", 0.91, PresenceState.PRESENT, 0.95, 4.0),
                     )
-                )
+                ),
+                pendingSync = false,
             ),
             onConfirm = {},
             onBackToList = {},

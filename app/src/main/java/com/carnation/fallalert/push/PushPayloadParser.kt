@@ -1,9 +1,9 @@
 package com.carnation.fallalert.push
 
 import android.util.Log
-import com.carnation.fallalert.data.FallEventJson
-import com.carnation.fallalert.data.isContractValid
 import com.carnation.fallalert.model.FallEvent
+import com.carnation.fallalert.model.FallEventJson
+import com.carnation.fallalert.model.contractViolation
 import kotlinx.serialization.SerializationException
 
 /**
@@ -26,9 +26,9 @@ object PushPayloadParser {
         }
         return try {
             FallEventJson.decodeFromString<FallEvent>(raw).takeIf { event ->
-                event.isContractValid().also { valid ->
-                    if (!valid) Log.w(TAG, "계약 위반 푸시 무시: ${event.windowId}")
-                }
+                val violation = event.contractViolation()
+                if (violation != null) Log.w(TAG, "계약 위반 푸시 무시 (${event.windowId}): $violation")
+                violation == null
             }
         } catch (e: SerializationException) {
             Log.e(TAG, "푸시 페이로드 파싱 실패", e)

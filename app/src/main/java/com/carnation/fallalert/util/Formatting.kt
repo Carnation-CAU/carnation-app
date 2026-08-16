@@ -46,6 +46,21 @@ fun Instant.toAbsoluteKorean(): String = ABSOLUTE_FORMAT.format(atZone(KST))
 /** 0.0~1.0 확률 → 정수 %. */
 fun Double.toPercent(): Int = (this * 100).roundToInt()
 
+/**
+ * 초 단위 값을 사람이 읽을 수 있게. 4.0 → "4", 1.5 → "1.5", 10.20427782593417 → "10.2".
+ *
+ * 계약상 `no_recovery_sec` 은 그냥 double 이라 정밀도 제한이 없다. 실제로 서버가
+ * 10.20427782593417 을 보내 화면에 그대로 찍힌 적이 있어서, 표시 단계에서 잘라 낸다.
+ */
+fun formatSeconds(seconds: Double): String {
+    val rounded = (seconds * 10).roundToInt() / 10.0
+    return if (rounded % 1.0 == 0.0) {
+        rounded.roundToInt().toString()
+    } else {
+        String.format(Locale.KOREAN, "%.1f", rounded)
+    }
+}
+
 /** room_id 는 계약상 임의 문자열이라, 아는 값만 한글로 바꾸고 나머지는 그대로 보여준다. */
 fun roomLabel(roomId: String): String = when (roomId) {
     "living-room" -> "거실"

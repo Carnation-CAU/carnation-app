@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+**debug 빌드 전용.** 같은 이름의 main 리소스를 덮어쓴다.
+
+로컬 개발 서버가 http 라 평문이 필요한데, 주소가 기기마다 달라(에뮬레이터 10.0.2.2,
+실기기는 PC 의 사설 IP) 목록으로 관리하기 어렵다. debug 에서만 평문을 열고
+release 는 main 쪽 설정(전면 금지)이 그대로 적용되게 해서, 이 예외가 배포로 새지 않게 했다.
+
+release APK 를 만들면 이 파일은 포함되지 않는다.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

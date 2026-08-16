@@ -4,7 +4,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -16,6 +18,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.CloudDone
+import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
@@ -36,6 +40,7 @@ import com.carnation.fallalert.ui.theme.CarnationTheme
 @Composable
 fun ConfirmationDoneScreen(
     confirmation: Confirmation,
+    pendingSync: Boolean,
     onBackToList: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -98,7 +103,7 @@ fun ConfirmationDoneScreen(
             )
 
             Spacer(Modifier.height(24.dp))
-            PendingSyncNotice()
+            SyncNotice(pendingSync)
         }
 
         Button(
@@ -115,41 +120,55 @@ fun ConfirmationDoneScreen(
 }
 
 /**
- * 확인 결과를 서버로 보내야 하지만 형식·엔드포인트가 팀 미확정이다. (명세 3장 화면 C / 7장)
- * 지금은 로컬 상태만 갱신했다는 사실을 화면에도 솔직히 드러낸다.
+ * 실제 전송 상태를 그대로 보여준다.
+ *
+ * "접수했어요"라고 해놓고 사실은 큐에만 있는 상태가 이 앱에서 가장 위험한 거짓말이다.
+ * 특히 "도움 필요"는 보호자가 이걸 보고 다음 행동(직접 전화 등)을 결정한다.
  */
 @Composable
-private fun PendingSyncNotice() {
+private fun SyncNotice(pendingSync: Boolean) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant,
         shape = RoundedCornerShape(14.dp),
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Text(
-            // TODO(팀 확정 후): 실제 전송 성공/실패 상태로 교체.
-            text = "이 기기에만 저장했어요. 서버 전송은 연동 후 동작합니다.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp),
-        )
+        Row(
+            modifier = Modifier.padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = if (pendingSync) Icons.Filled.CloudOff else Icons.Filled.CloudDone,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(24.dp),
+            )
+            Spacer(Modifier.width(10.dp))
+            Text(
+                text = if (pendingSync) {
+                    "아직 서버에 전달하지 못했어요. 연결되면 자동으로 다시 보냅니다."
+                } else {
+                    "서버에 전달했어요."
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f),
+            )
+        }
     }
 }
 
-@Preview(showBackground = true, heightDp = 800)
+@Preview(showBackground = true, heightDp = 800, name = "정상 · 전송됨")
 @Composable
 private fun ConfirmationDoneNormalPreview() {
     CarnationTheme {
-        ConfirmationDoneScreen(Confirmation.NORMAL, onBackToList = {})
+        ConfirmationDoneScreen(Confirmation.NORMAL, pendingSync = false, onBackToList = {})
     }
 }
 
-@Preview(showBackground = true, heightDp = 800)
+@Preview(showBackground = true, heightDp = 800, name = "도움 필요 · 전송 대기")
 @Composable
 private fun ConfirmationDoneHelpPreview() {
     CarnationTheme {
-        ConfirmationDoneScreen(Confirmation.HELP_NEEDED, onBackToList = {})
+        ConfirmationDoneScreen(Confirmation.HELP_NEEDED, pendingSync = true, onBackToList = {})
     }
 }

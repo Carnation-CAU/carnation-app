@@ -5,12 +5,16 @@
 
 대신 연동 시 **바뀌지 않을 부분**만 미리 만들어 뒀다.
 
+**FCM 이 없어도 앱이 켜져 있는 동안은 WebSocket 으로 실시간 알림을 받는다.**
+FCM 이 추가로 해결하는 건 **앱이 완전히 종료된 상태**뿐이다. 우선순위를 그렇게 보면 된다.
+
 | 구성요소 | 파일 | 상태 |
 |---|---|---|
+| 실시간 수신 (앱 실행 중) | `data/remote/EventStreamClient.kt` | 완성 (WebSocket + 재연결) |
 | 페이로드 → FallEvent 파싱 | `PushPayloadParser.kt` | 완성 (Firebase 무관, 테스트 있음) |
 | 알림 채널·표시 | `FallAlertNotifier.kt` | 완성 |
-| 새 이벤트 주입 경로 | `FallEventRepository.upsert()` | 완성 |
-| 가짜 푸시 생성 | `MockPushGenerator.kt` | 완성 (목록 화면 "테스트 알림" 버튼) |
+| 새 이벤트 주입 경로 | `FallEventRepository` 의 스트림 처리 | 완성 |
+| 가짜 이벤트 생성 | 서버 `POST /api/v1/debug/simulate` | 완성 (목록 화면 "테스트 이벤트 보내기" 버튼) |
 | FCM 수신 서비스 | 아래 코드 | **미적용** |
 
 ## 팀 확정 후 할 일
@@ -48,9 +52,9 @@ class FallAlertMessagingService : FirebaseMessagingService() {
 
     override fun onMessageReceived(message: RemoteMessage) {
         val event = PushPayloadParser.parse(message.data) ?: return
+        // 알림만 띄우면 된다. 사용자가 앱을 열면 REST 로 전체 목록을 다시 읽으므로
+        // 여기서 따로 저장할 필요가 없다.
         FallAlertNotifier.notify(this, event)
-        // TODO: 앱이 죽어 있을 때를 위해 로컬 저장(Room/DataStore) 후
-        //       FallEventRepository.refresh() 가 읽어가도록 한다.
     }
 }
 ```
@@ -69,6 +73,13 @@ class FallAlertMessagingService : FirebaseMessagingService() {
 `notification` 필드를 함께 보내면 앱이 백그라운드일 때 시스템이 임의 문구로 알림을 띄워
 "낙상 의심" 표기 원칙(명세 8장)이 깨진다. **`data`-only 로 요청할 것.**
 
-## adb 로 수동 테스트
+## 지금 수신 경로를 테스트하는 법
 
-Firebase 붙이기 전이라도 목록 화면의 **"테스트 알림 받기"** 버튼으로 수신 경로 전체를 재현할 수 있다.
+로컬 서버를 띄우고 목록 화면의 **"테스트 이벤트 보내기"** 버튼을 누르면 된다.
+서버가 이벤트를 만들어 WebSocket 으로 되돌려 주므로, 알림 표시까지 실제 경로를 그대로 탄다.
+
+```bash
+curl -X POST http://localhost:8080/api/v1/debug/simulate
+```
+
+curl 로 직접 쏴도 연결된 앱에 똑같이 도착한다.

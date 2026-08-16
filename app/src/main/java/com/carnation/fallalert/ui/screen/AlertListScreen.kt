@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -22,8 +23,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -48,6 +51,7 @@ import com.carnation.fallalert.model.Confirmation
 import com.carnation.fallalert.model.EventRecord
 import com.carnation.fallalert.model.Evidence
 import com.carnation.fallalert.model.FallEvent
+import com.carnation.fallalert.data.remote.ConnectionState
 import com.carnation.fallalert.model.PresenceState
 import com.carnation.fallalert.ui.AlertListUiState
 import com.carnation.fallalert.ui.theme.CarnationTheme
@@ -61,20 +65,30 @@ import com.carnation.fallalert.util.toRelativeKorean
 @Composable
 fun AlertListScreen(
     state: AlertListUiState,
+    connection: ConnectionState,
+    pendingSyncCount: Int,
     onEventClick: (String) -> Unit,
     onSimulatePush: () -> Unit,
+    onRetry: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
         modifier = modifier,
         topBar = {
-            TopAppBar(
-                title = { Text("낙상 의심 알림") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface,
-                ),
-            )
+            Column {
+                TopAppBar(
+                    title = { Text("낙상 의심 알림") },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    ),
+                )
+                ConnectionBanner(
+                    state = connection,
+                    pendingSyncCount = pendingSyncCount,
+                    onRetry = onRetry,
+                )
+            }
         },
     ) { innerPadding ->
         Box(
@@ -84,9 +98,17 @@ fun AlertListScreen(
                 .background(MaterialTheme.colorScheme.background),
         ) {
             when (state) {
-                AlertListUiState.Loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
-                AlertListUiState.Empty -> EmptyState(onSimulatePush, Modifier.align(Alignment.Center))
-                is AlertListUiState.Ready -> ReadyList(state, onEventClick, onSimulatePush)
+                AlertListUiState.Loading ->
+                    CircularProgressIndicator(Modifier.align(Alignment.Center))
+
+                is AlertListUiState.Failed ->
+                    FailedState(state.reason, onRetry, Modifier.align(Alignment.Center))
+
+                AlertListUiState.Empty ->
+                    EmptyState(onSimulatePush, Modifier.align(Alignment.Center))
+
+                is AlertListUiState.Ready ->
+                    ReadyList(state, onEventClick, onSimulatePush)
             }
         }
     }
@@ -132,8 +154,9 @@ private fun ReadyList(
             ) {
                 Icon(Icons.Filled.NotificationsActive, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
-                // TODO(팀 확정 후): FCM 연동되면 이 개발용 버튼을 제거한다.
-                Text("테스트 알림 받기 (개발용)")
+                // 서버에 모의 이벤트 생성을 요청한다 — 결과는 WebSocket 으로 돌아오므로
+                // 실제 수신 경로를 그대로 검증한다. 운영 빌드에서는 제거할 것.
+                Text("테스트 이벤트 보내기 (개발용)")
             }
         }
     }
@@ -294,7 +317,44 @@ private fun EmptyState(onSimulatePush: () -> Unit, modifier: Modifier = Modifier
         )
         Spacer(Modifier.height(24.dp))
         OutlinedButton(onClick = onSimulatePush) {
-            Text("테스트 알림 받기 (개발용)")
+            Text("테스트 이벤트 보내기 (개발용)")
+        }
+    }
+}
+
+/**
+ * 목록을 못 읽었을 때. 캐시를 두지 않기로 했으므로 여기서 보여줄 이전 데이터가 없다 —
+ * 그래서 "알림이 없음"이 아니라 "확인할 수 없음"이라고 분명히 말해야 한다.
+ */
+@Composable
+private fun FailedState(reason: String, onRetry: () -> Unit, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier.padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Icon(
+            imageVector = Icons.Filled.CloudOff,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(72.dp),
+        )
+        Spacer(Modifier.height(16.dp))
+        Text(
+            text = "알림을 불러올 수 없어요",
+            style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.onBackground,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = "새 알림이 없는 게 아니라, 서버를 확인하지 못한 상태예요.\n$reason",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(24.dp))
+        Button(onClick = onRetry, modifier = Modifier.heightIn(min = 60.dp)) {
+            Text("다시 시도")
         }
     }
 }
@@ -320,8 +380,26 @@ private fun AlertListPreview() {
     CarnationTheme {
         AlertListScreen(
             state = AlertListUiState.Ready(listOf(unconfirmed), listOf(confirmed)),
+            connection = ConnectionState.Connected,
+            pendingSyncCount = 0,
             onEventClick = {},
             onSimulatePush = {},
+            onRetry = {},
+        )
+    }
+}
+
+@Preview(showBackground = true, heightDp = 900, name = "오프라인 + 미전송")
+@Composable
+private fun AlertListOfflinePreview() {
+    CarnationTheme {
+        AlertListScreen(
+            state = AlertListUiState.Failed("서버에 연결할 수 없습니다"),
+            connection = ConnectionState.Offline("연결할 수 없습니다", retryInSeconds = 8),
+            pendingSyncCount = 1,
+            onEventClick = {},
+            onSimulatePush = {},
+            onRetry = {},
         )
     }
 }

@@ -1,0 +1,89 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://carnation.example/fall_event.schema.json",
+  "title": "fall_event",
+  "description": "낙상 의심 이벤트 계약 v1.0. 모델·CSI → 서버 → 보호자 앱으로 흐르는 유일한 데이터 형식. Kotlin 구현이 원본이고(contract/src/main/kotlin/.../FallEvent.kt, ContractJson.kt) 이 파일은 다른 언어에서 검증하기 위한 사본이다. 두 쪽이 어긋나지 않는지는 ContractTest 의 '스키마 파일이 Kotlin 모델과 일치한다' 테스트가 확인한다.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema_version",
+    "event_type",
+    "window_id",
+    "detected_at",
+    "room_id",
+    "risk_score",
+    "evidence"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "event_type": {
+      "type": "string",
+      "const": "fall_suspected"
+    },
+    "window_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "이벤트의 고유 키. 같은 값으로 다시 보내면 새 알림이 아니라 기존 이벤트 갱신이다.",
+      "examples": ["trial-01:7"]
+    },
+    "detected_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601. 타임존 오프셋 필수 — 없으면 서버가 422 로 거부한다.",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?(Z|[+-]\\d{2}:\\d{2})$",
+      "examples": ["2026-08-05T10:30:00+09:00"]
+    },
+    "room_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "임의 문자열. 앱은 아는 값만 한글로 바꾸고 모르는 값은 원문 그대로 보여준다.",
+      "examples": ["living-room", "bedroom", "bathroom", "kitchen", "entrance"]
+    },
+    "risk_score": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "description": "0.0 ~ 1.0. 퍼센트 변환은 앱이 한다."
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "motion_label",
+        "motion_confidence",
+        "presence_state",
+        "presence_probability"
+      ],
+      "properties": {
+        "motion_label": {
+          "type": "string",
+          "description": "앱이 한글로 아는 값은 fall_like, sudden_drop, normal. 그 외는 원문 표시.",
+          "examples": ["fall_like", "sudden_drop", "normal"]
+        },
+        "motion_confidence": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "presence_state": {
+          "type": "string",
+          "enum": ["present", "absent", "unknown"],
+          "description": "소문자만. PRESENT 는 거부된다."
+        },
+        "presence_probability": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "no_recovery_sec": {
+          "type": ["number", "null"],
+          "minimum": 0.0,
+          "description": "선택 필드. 없으면 키를 빼거나 null. 앱은 값이 없으면 해당 행을 숨긴다."
+        }
+      }
+    }
+  }
+}

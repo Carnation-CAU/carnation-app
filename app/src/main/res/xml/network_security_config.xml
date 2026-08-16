@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+release 용 설정: 평문 통신 전면 금지.
+
+개발 서버 주소는 기기마다 달라서(에뮬레이터 10.0.2.2 / 실기기는 PC 사설 IP)
+여기에 IP 를 나열하면 계속 고쳐야 하고, 실수로 배포까지 따라간다.
+그래서 debug 빌드에만 예외를 주는 별도 파일을 뒀다:
+`app/src/debug/res/xml/network_security_config.xml`
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+</network-security-config>

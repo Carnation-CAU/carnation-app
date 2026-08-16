@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.carnation.fallalert.SchemaFileTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-08-16T05:33:22" hostname="DESKTOP-45B17UT" time="0.026">
+  <properties/>
+  <testcase name="evidence 필드가 Kotlin 모델과 일치한다" classname="com.carnation.fallalert.SchemaFileTest" time="0.022"/>
+  <testcase name="최상위 필드가 Kotlin 모델과 일치한다" classname="com.carnation.fallalert.SchemaFileTest" time="0.002"/>
+  <testcase name="스키마의 고정값이 계약 검증과 일치한다" classname="com.carnation.fallalert.SchemaFileTest" time="0.001"/>
+  <testcase name="presence_state 열거값이 일치한다" classname="com.carnation.fallalert.SchemaFileTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

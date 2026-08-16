@@ -44,10 +44,16 @@ fun FallAlertNavHost(modifier: Modifier = Modifier) {
     ) {
         composable(Routes.LIST) {
             val state by viewModel.listState.collectAsStateWithLifecycle()
+            val connection by viewModel.connection.collectAsStateWithLifecycle()
+            val pendingCount by viewModel.pendingSyncCount.collectAsStateWithLifecycle()
+
             AlertListScreen(
                 state = state,
+                connection = connection,
+                pendingSyncCount = pendingCount,
                 onEventClick = { windowId -> navController.navigate(Routes.detail(windowId)) },
-                onSimulatePush = viewModel::simulateIncomingPush,
+                onSimulatePush = viewModel::requestSimulatedEvent,
+                onRetry = viewModel::refresh,
             )
         }
 
@@ -76,13 +82,18 @@ fun FallAlertNavHost(modifier: Modifier = Modifier) {
                 navArgument(ARG_CONFIRMATION) { type = NavType.StringType },
             ),
         ) { entry ->
+            val windowId = entry.arguments?.getString(ARG_WINDOW_ID).orEmpty()
             val confirmation = entry.arguments
                 ?.getString(ARG_CONFIRMATION)
                 ?.let { runCatching { Confirmation.valueOf(it) }.getOrNull() }
                 ?: Confirmation.NORMAL
 
+            // 전송 상태는 계속 바뀐다 — 이 화면을 보는 중에 전송이 끝나면 문구도 따라 바뀌어야 한다.
+            val pendingList by viewModel.pendingSync.collectAsStateWithLifecycle()
+
             ConfirmationDoneScreen(
                 confirmation = confirmation,
+                pendingSync = pendingList.any { it.windowId == windowId },
                 onBackToList = {
                     navController.popBackStack(Routes.LIST, inclusive = false)
                 },
