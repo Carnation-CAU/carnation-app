@@ -13,9 +13,12 @@ import com.carnation.fallalert.data.remote.CarnationApi
 import com.carnation.fallalert.data.remote.ConnectionState
 import com.carnation.fallalert.model.Confirmation
 import com.carnation.fallalert.model.EventRecord
+import com.carnation.fallalert.model.ParentProfile
 import com.carnation.fallalert.push.FallAlertNotifier
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -61,6 +64,37 @@ class FallAlertViewModel(application: Application) : AndroidViewModel(applicatio
     val pendingSyncCount: StateFlow<Int> = repository.pendingSync
         .map { it.size }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
+    /**
+     * 장시간 무동작 시간(분). **목업이다.**
+     *
+     * 서버 계약(`FallEvent`)에는 무동작을 나타내는 필드가 없다. 계약을 건드리지 않기로 했으므로
+     * 값을 여기에 고정해 두고 화면만 먼저 만든다.
+     * TODO: 팀이 무동작 이벤트 형식을 정하면 이 값을 서버 실시간 값으로 교체한다.
+     */
+    private val _inactivityMinutes = MutableStateFlow(192) // 3시간 12분
+    val inactivityMinutes: StateFlow<Int> = _inactivityMinutes.asStateFlow()
+
+    /**
+     * 부모님 정보. 설정 화면에서 수정하며, 지금은 메모리에만 산다.
+     * TODO: DataStore 영구 저장 (현관 비밀번호가 들어가므로 암호화 검토).
+     */
+    private val _parentProfile = MutableStateFlow(ParentProfile.MOCK)
+    val parentProfile: StateFlow<ParentProfile> = _parentProfile.asStateFlow()
+
+    fun updateParentProfile(profile: ParentProfile) {
+        _parentProfile.value = profile
+    }
+
+    /** 확인한 알림 탭. 최신순은 저장소가 이미 보장한다. */
+    val confirmedRecords: StateFlow<List<EventRecord>> = repository.records
+        .map { records -> records.filterNot { it.isUnconfirmed } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** 홈의 "더 보기"에서 여는 전체 미확인 목록. */
+    val unconfirmedRecords: StateFlow<List<EventRecord>> = repository.records
+        .map { records -> records.filter { it.isUnconfirmed } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val listState: StateFlow<AlertListUiState> =
         combine(repository.records, repository.loadState) { records, load ->

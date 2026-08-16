@@ -22,7 +22,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.DirectionsRun
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
@@ -52,6 +51,7 @@ import com.carnation.fallalert.model.Confirmation
 import com.carnation.fallalert.model.EventRecord
 import com.carnation.fallalert.model.Evidence
 import com.carnation.fallalert.model.FallEvent
+import com.carnation.fallalert.model.ParentProfile
 import com.carnation.fallalert.model.PresenceState
 import com.carnation.fallalert.ui.EventDetailUiState
 import com.carnation.fallalert.ui.theme.CarnationTheme
@@ -62,7 +62,6 @@ import com.carnation.fallalert.ui.theme.TouchTarget
 import com.carnation.fallalert.util.detectedAtInstant
 import com.carnation.fallalert.util.formatSeconds
 import com.carnation.fallalert.util.motionLabel
-import com.carnation.fallalert.util.presenceLabel
 import com.carnation.fallalert.util.roomLabel
 import com.carnation.fallalert.util.toAbsoluteKorean
 import com.carnation.fallalert.util.toPercent
@@ -72,6 +71,7 @@ import com.carnation.fallalert.util.toPercent
 @Composable
 fun EventDetailScreen(
     state: EventDetailUiState,
+    parentProfile: ParentProfile,
     onConfirm: (Confirmation) -> Unit,
     onBackToList: () -> Unit,
     modifier: Modifier = Modifier,
@@ -107,7 +107,13 @@ fun EventDetailScreen(
                     NotFoundState(onBackToList, Modifier.align(Alignment.Center))
 
                 is EventDetailUiState.Ready ->
-                    DetailContent(state.record, state.pendingSync, onConfirm, onBackToList)
+                    DetailContent(
+                        record = state.record,
+                        pendingSync = state.pendingSync,
+                        parentProfile = parentProfile,
+                        onConfirm = onConfirm,
+                        onBackToList = onBackToList,
+                    )
             }
         }
     }
@@ -117,6 +123,7 @@ fun EventDetailScreen(
 private fun DetailContent(
     record: EventRecord,
     pendingSync: Boolean,
+    parentProfile: ParentProfile,
     onConfirm: (Confirmation) -> Unit,
     onBackToList: () -> Unit,
 ) {
@@ -204,7 +211,11 @@ private fun DetailContent(
             AlreadyConfirmedNotice(record.confirmation, pendingSync)
         }
 
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(Space.xl))
+        // 홈과 같은 자리·같은 모양. 급할 때 위치를 다시 찾게 하면 안 된다.
+        ParentActionBar(profile = parentProfile)
+
+        Spacer(Modifier.height(Space.md))
         // 경고색(코랄)을 쓰지 않는다. 단순 이동 링크라 위험 신호와 구분되어야 한다.
         TextButton(
             onClick = onBackToList,
@@ -277,7 +288,7 @@ private fun EvidenceCard(event: FallEvent) {
     ) {
         Column(Modifier.padding(20.dp)) {
             Text(
-                text = "이렇게 판단했어요",
+                text = "상세 정보",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
             )
@@ -289,13 +300,8 @@ private fun EvidenceCard(event: FallEvent) {
                 value = motionLabel(evidence.motionLabel),
                 detail = "${evidence.motionConfidence.toPercent()}%",
             )
-            HorizontalDivider(Modifier.padding(vertical = 12.dp))
-            EvidenceRow(
-                icon = Icons.Filled.Person,
-                label = "사람 존재",
-                value = presenceLabel(evidence.presenceState),
-                detail = "${evidence.presenceProbability.toPercent()}%",
-            )
+            // presence(사람 존재/확률)는 화면에서 뺐다. 계약(FallEvent.Evidence)에는 그대로
+            // 남아 있고 서버도 계속 보낸다 — 표시만 하지 않는다.
             // 선택 필드 — 값이 없으면 행 자체를 숨긴다. (명세 3장 화면 B)
             evidence.noRecoverySec?.let { seconds ->
                 HorizontalDivider(Modifier.padding(vertical = 12.dp))
@@ -458,6 +464,7 @@ private fun EventDetailPreview() {
                 ),
                 pendingSync = false,
             ),
+            parentProfile = ParentProfile.MOCK,
             onConfirm = {},
             onBackToList = {},
         )

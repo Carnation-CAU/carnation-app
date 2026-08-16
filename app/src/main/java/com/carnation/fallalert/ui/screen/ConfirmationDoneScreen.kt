@@ -4,27 +4,21 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.CloudDone
-import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -35,12 +29,20 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.carnation.fallalert.model.Confirmation
 import com.carnation.fallalert.ui.theme.CarnationTheme
+import com.carnation.fallalert.ui.theme.Radius
+import com.carnation.fallalert.ui.theme.Space
+import com.carnation.fallalert.ui.theme.TouchTarget
 
-/** 화면 C — 확인 완료 */
+/**
+ * 화면 C — 확인 완료
+ *
+ * 확인 결과 메시지만 남긴다. 서버 전달 여부는 화면에 노출하지 않는다.
+ * **전송·재시도 로직은 그대로 살아 있다** — 실패하면 아웃박스가 붙들고 있다가 재연결 시
+ * 다시 보낸다([com.carnation.fallalert.data.ConfirmationOutbox]). 화면에서 뺀 것뿐이다.
+ */
 @Composable
 fun ConfirmationDoneScreen(
     confirmation: Confirmation,
-    pendingSync: Boolean,
     onBackToList: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -55,20 +57,19 @@ fun ConfirmationDoneScreen(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .systemBarsPadding()
-            .padding(28.dp),
+            .padding(Space.xl),
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 // 하단 고정 버튼과 겹치지 않게 비워 둔다.
-                .padding(bottom = 88.dp),
+                .padding(bottom = 96.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
             Box(
                 modifier = Modifier
-                    .size(120.dp)
+                    .size(112.dp)
                     .background(accent, CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
@@ -76,11 +77,11 @@ fun ConfirmationDoneScreen(
                     imageVector = if (isNormal) Icons.Filled.CheckCircle else Icons.Filled.Warning,
                     contentDescription = null,
                     tint = Color.White,
-                    modifier = Modifier.size(72.dp),
+                    modifier = Modifier.size(64.dp),
                 )
             }
 
-            Spacer(Modifier.height(28.dp))
+            Spacer(Modifier.height(Space.xl))
 
             Text(
                 text = if (isNormal) "정상으로 확인했어요" else "도움 요청을 접수했어요",
@@ -89,7 +90,7 @@ fun ConfirmationDoneScreen(
                 textAlign = TextAlign.Center,
             )
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(Space.md))
 
             Text(
                 text = if (isNormal) {
@@ -101,9 +102,6 @@ fun ConfirmationDoneScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
-
-            Spacer(Modifier.height(24.dp))
-            SyncNotice(pendingSync)
         }
 
         Button(
@@ -111,64 +109,26 @@ fun ConfirmationDoneScreen(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .heightIn(min = 68.dp),
-            shape = RoundedCornerShape(16.dp),
+                .heightIn(min = TouchTarget.primaryAction),
+            shape = Radius.button,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.secondary,
+                contentColor = MaterialTheme.colorScheme.onSecondary,
+            ),
         ) {
             Text("목록으로 돌아가기")
         }
     }
 }
 
-/**
- * 실제 전송 상태를 그대로 보여준다.
- *
- * "접수했어요"라고 해놓고 사실은 큐에만 있는 상태가 이 앱에서 가장 위험한 거짓말이다.
- * 특히 "도움 필요"는 보호자가 이걸 보고 다음 행동(직접 전화 등)을 결정한다.
- */
-@Composable
-private fun SyncNotice(pendingSync: Boolean) {
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        shape = RoundedCornerShape(14.dp),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Row(
-            modifier = Modifier.padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = if (pendingSync) Icons.Filled.CloudOff else Icons.Filled.CloudDone,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(24.dp),
-            )
-            Spacer(Modifier.width(10.dp))
-            Text(
-                text = if (pendingSync) {
-                    "아직 서버에 전달하지 못했어요. 연결되면 자동으로 다시 보냅니다."
-                } else {
-                    "서버에 전달했어요."
-                },
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f),
-            )
-        }
-    }
-}
-
-@Preview(showBackground = true, heightDp = 800, name = "정상 · 전송됨")
+@Preview(showBackground = true, heightDp = 800, name = "정상")
 @Composable
 private fun ConfirmationDoneNormalPreview() {
-    CarnationTheme {
-        ConfirmationDoneScreen(Confirmation.NORMAL, pendingSync = false, onBackToList = {})
-    }
+    CarnationTheme { ConfirmationDoneScreen(Confirmation.NORMAL, onBackToList = {}) }
 }
 
-@Preview(showBackground = true, heightDp = 800, name = "도움 필요 · 전송 대기")
+@Preview(showBackground = true, heightDp = 800, name = "도움 필요")
 @Composable
 private fun ConfirmationDoneHelpPreview() {
-    CarnationTheme {
-        ConfirmationDoneScreen(Confirmation.HELP_NEEDED, pendingSync = true, onBackToList = {})
-    }
+    CarnationTheme { ConfirmationDoneScreen(Confirmation.HELP_NEEDED, onBackToList = {}) }
 }
