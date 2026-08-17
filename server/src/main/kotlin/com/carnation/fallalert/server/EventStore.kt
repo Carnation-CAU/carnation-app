@@ -72,6 +72,7 @@ class EventStore(seed: List<FallEvent> = emptyList()) {
                 confirmation = report.confirmation,
                 // 첫 보고 시각을 유지한다. 재시도로 늦게 도착해도 원래 누른 시각이 남는다.
                 confirmedAt = existing.confirmedAt ?: report.reportedAt,
+                reasons = report.reasons,
             ).also { envelopes[report.windowId] = it }
         } ?: return null
 

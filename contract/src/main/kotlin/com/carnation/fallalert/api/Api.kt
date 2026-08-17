@@ -27,6 +27,11 @@ data class EventEnvelope(
     val event: FallEvent,
     val confirmation: Confirmation? = null,
     @SerialName("confirmed_at") val confirmedAt: String? = null,
+    /**
+     * 보호자가 "도움은 필요 없다"고 답할 때 함께 고른 실제 상황 코드들.
+     * 오탐을 줄이는 데 쓰는 값이라 모델 팀이 읽어 갈 자리다. 빈 목록일 수 있다.
+     */
+    val reasons: List<String> = emptyList(),
 ) {
     val windowId: String get() = event.windowId
 }
@@ -48,6 +53,11 @@ data class ConfirmationReport(
     /** 보호자가 실제로 버튼을 누른 시각. 재시도로 늦게 도착해도 원래 시각이 남는다. */
     @SerialName("reported_at") val reportedAt: String,
     @SerialName("client_id") val clientId: String,
+    /**
+     * "도움은 필요 없어요"를 고를 때 함께 체크한 실제 상황 코드. 선택 사항이라 기본값이 있고,
+     * 구버전 앱·서버와 섞여도 깨지지 않는다. `fall_event` 계약과는 무관한 앱↔서버 필드다.
+     */
+    val reasons: List<String> = emptyList(),
 )
 
 @Serializable

@@ -13,6 +13,7 @@ import com.carnation.fallalert.data.remote.CarnationApi
 import com.carnation.fallalert.data.remote.ConnectionState
 import com.carnation.fallalert.model.Confirmation
 import com.carnation.fallalert.model.EventRecord
+import com.carnation.fallalert.model.NormalReason
 import com.carnation.fallalert.model.ParentProfile
 import com.carnation.fallalert.push.FallAlertNotifier
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -143,8 +144,19 @@ class FallAlertViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    fun confirm(windowId: String, confirmation: Confirmation) {
-        viewModelScope.launch { repository.confirm(windowId, confirmation) }
+    /** 119 로 정보를 보내기로 한 순간 — 그게 곧 "도움 필요" 판단이다. */
+    fun markHelpNeeded(windowId: String) {
+        viewModelScope.launch { repository.confirm(windowId, Confirmation.HELP_NEEDED) }
+    }
+
+    /**
+     * "도움은 필요 없어요" + 실제 상황. [reasons] 는 비어 있을 수 있다 —
+     * 입력을 강제하면 급한 사람이 아무거나 찍고, 그 데이터가 정확도를 오히려 망친다.
+     */
+    fun markNoHelpNeeded(windowId: String, reasons: List<NormalReason>) {
+        viewModelScope.launch {
+            repository.confirm(windowId, Confirmation.NORMAL, reasons.map { it.code })
+        }
     }
 
     /**

@@ -5,6 +5,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,33 +15,27 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material.icons.filled.TaskAlt
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -49,12 +44,15 @@ import com.carnation.fallalert.model.Confirmation
 import com.carnation.fallalert.model.EventRecord
 import com.carnation.fallalert.model.ParentProfile
 import com.carnation.fallalert.ui.AlertListUiState
+import com.carnation.fallalert.ui.theme.BgGray
+import com.carnation.fallalert.ui.theme.BlueLight
 import com.carnation.fallalert.ui.theme.CarnationTheme
-import com.carnation.fallalert.ui.theme.Elevation
+import com.carnation.fallalert.ui.theme.DangerRed
 import com.carnation.fallalert.ui.theme.Motion
-import com.carnation.fallalert.ui.theme.Radius
+import com.carnation.fallalert.ui.theme.NavyDeep
 import com.carnation.fallalert.ui.theme.Space
-import com.carnation.fallalert.ui.theme.TouchTarget
+import com.carnation.fallalert.ui.theme.SuccessGreen
+import com.carnation.fallalert.ui.theme.TextSecondary
 
 /** 홈에 한 번에 보여줄 미확인 알림 수. 나머지는 "더 보기"로 넘긴다. */
 private const val HOME_ALERT_LIMIT = 3
@@ -65,10 +63,9 @@ private const val HOME_ALERT_LIMIT = 3
  * 위에서 아래로 읽히는 순서가 곧 보호자가 판단하는 순서다:
  *   지금 상태(무동작) → 확인할 알림 → 무엇을 할 것인가(전화 / 119)
  *
- * 확인이 끝난 알림은 여기 남기지 않는다. 홈은 "아직 처리 안 된 것"만 담고,
- * 지난 건은 [ConfirmedListScreen] 탭이 맡는다.
+ * 화면 전체가 뉴트럴이고 **낙상 카드만 색을 갖는다.** 차분한 바탕이 목적이 아니라,
+ * 그래야 위험이 눈에 걸리기 때문이다.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AlertListScreen(
     state: AlertListUiState,
@@ -76,29 +73,30 @@ fun AlertListScreen(
     pendingSyncCount: Int,
     inactivityMinutes: Int,
     parentProfile: ParentProfile,
+    confirmedCount: Int,
     onEventClick: (String) -> Unit,
     onSeeAll: () -> Unit,
+    onOpenConfirmed: () -> Unit,
     onOpenSettings: () -> Unit,
     onSimulatePush: () -> Unit,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier.fillMaxSize()) {
-        TopAppBar(
-            title = { Text("낙상 의심 알림", style = MaterialTheme.typography.titleLarge) },
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background),
+    ) {
+        ScreenTitle(
+            title = "낙상 의심 알림",
             actions = {
                 IconButton(onClick = onOpenSettings) {
                     Icon(
                         imageVector = Icons.Filled.Settings,
                         contentDescription = "부모님 정보 설정",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.background,
-                titleContentColor = MaterialTheme.colorScheme.onBackground,
-            ),
         )
 
         ConnectionBanner(
@@ -117,6 +115,8 @@ fun AlertListScreen(
                         inactivityMinutes = inactivityMinutes,
                         unconfirmed = emptyList(),
                         totalUnconfirmed = 0,
+                        confirmedCount = confirmedCount,
+                        onOpenConfirmed = onOpenConfirmed,
                         failure = state.reason,
                         onEventClick = onEventClick,
                         onSeeAll = onSeeAll,
@@ -129,6 +129,8 @@ fun AlertListScreen(
                         inactivityMinutes = inactivityMinutes,
                         unconfirmed = emptyList(),
                         totalUnconfirmed = 0,
+                        confirmedCount = confirmedCount,
+                        onOpenConfirmed = onOpenConfirmed,
                         failure = null,
                         onEventClick = onEventClick,
                         onSeeAll = onSeeAll,
@@ -141,6 +143,8 @@ fun AlertListScreen(
                         inactivityMinutes = inactivityMinutes,
                         unconfirmed = state.unconfirmed.take(HOME_ALERT_LIMIT),
                         totalUnconfirmed = state.unconfirmed.size,
+                        confirmedCount = confirmedCount,
+                        onOpenConfirmed = onOpenConfirmed,
                         failure = null,
                         onEventClick = onEventClick,
                         onSeeAll = onSeeAll,
@@ -150,17 +154,8 @@ fun AlertListScreen(
             }
         }
 
-        // 대응 버튼은 스크롤과 무관하게 늘 같은 자리에 있어야 한다.
-        Surface(
-            color = MaterialTheme.colorScheme.background,
-            shadowElevation = Elevation.raised,
-        ) {
-            ParentActionBar(
-                profile = parentProfile,
-                modifier = Modifier.padding(
-                    start = Space.xl, end = Space.xl, top = Space.lg, bottom = Space.lg,
-                ),
-            )
+        BottomBarSurface {
+            ParentActionBar(profile = parentProfile)
         }
     }
 }
@@ -170,6 +165,8 @@ private fun HomeBody(
     inactivityMinutes: Int,
     unconfirmed: List<EventRecord>,
     totalUnconfirmed: Int,
+    confirmedCount: Int,
+    onOpenConfirmed: () -> Unit,
     failure: String?,
     onEventClick: (String) -> Unit,
     onSeeAll: () -> Unit,
@@ -179,16 +176,16 @@ private fun HomeBody(
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(
-            start = Space.xl, end = Space.xl, top = Space.sm, bottom = Space.xl,
+            start = Space.xl, end = Space.xl, top = Space.md, bottom = Space.section,
         ),
         verticalArrangement = Arrangement.spacedBy(Space.md),
     ) {
         item(key = "inactivity") {
             InactivityCard(minutes = inactivityMinutes)
-            Spacer(Modifier.height(Space.sm))
         }
 
         item(key = "status") {
+            Spacer(Modifier.height(Space.sm))
             StatusHeadline(unconfirmedCount = totalUnconfirmed, failure = failure)
         }
 
@@ -198,54 +195,57 @@ private fun HomeBody(
 
         if (totalUnconfirmed > unconfirmed.size) {
             item(key = "more") {
-                OutlinedButton(
+                SecondaryActionButton(
+                    text = "나머지 ${totalUnconfirmed - unconfirmed.size}건 더 보기",
                     onClick = onSeeAll,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = TouchTarget.minimum),
-                    shape = Radius.button,
-                ) {
-                    Text("나머지 ${totalUnconfirmed - unconfirmed.size}건 더 보기")
-                }
+                )
             }
         }
 
         if (failure != null) {
             item(key = "retry") {
-                Button(
-                    onClick = onRetry,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = TouchTarget.minimum),
-                    shape = Radius.button,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.secondary,
-                        contentColor = MaterialTheme.colorScheme.onSecondary,
-                    ),
-                ) {
-                    Text("다시 시도", fontWeight = FontWeight.Bold)
-                }
+                PrimaryActionButton(text = "다시 시도", onClick = onRetry)
+            }
+        }
+
+        // 확인한 알림은 가끔 되짚어 보는 이력이다. 목록 행 하나로 조용히 둔다.
+        item(key = "confirmed-entry") {
+            Spacer(Modifier.height(Space.sm))
+            AppCard(onClick = onOpenConfirmed, contentPadding = Space.lg) {
+                IconListRow(
+                    icon = Icons.Filled.TaskAlt,
+                    iconTint = TextSecondary,
+                    iconBackground = BgGray,
+                    title = "확인한 알림",
+                    trailing = {
+                        if (confirmedCount > 0) {
+                            Text(
+                                text = "${confirmedCount}건",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    },
+                )
             }
         }
 
         item(key = "dev") {
-            Spacer(Modifier.height(Space.md))
-            // 개발용 도구는 CTA 가 아니다. 시선을 가져가지 않도록 링크로 낮춘다.
-            TextButton(
-                onClick = onSimulatePush,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.textButtonColors(
-                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                ),
-            ) {
-                Text("테스트 이벤트 보내기", style = MaterialTheme.typography.bodyMedium)
+            Spacer(Modifier.height(Space.sm))
+            // 개발용 도구는 CTA 가 아니다. 캡션 크기 링크로 낮춘다.
+            TextButton(onClick = onSimulatePush, modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    "테스트 이벤트 보내기",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }
 }
 
 /**
- * 이 화면의 signature. 목록을 읽기 전에 결론을 먼저 말한다.
+ * 목록을 읽기 전에 결론을 먼저 말한다.
  *
  * 세 상태는 색만 다른 게 아니라 문장 자체가 다르다. 특히 실패는 "알림 없음"과
  * 반드시 구분되어야 한다 — 사고가 없는 것과 확인을 못 한 것은 다르다.
@@ -259,66 +259,62 @@ private fun StatusHeadline(unconfirmedCount: Int, failure: String?) {
         },
         label = "status",
     ) { (hasWork, failed, count) ->
-        Column(modifier = Modifier.padding(vertical = Space.md)) {
-            when {
-                failed -> {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Filled.CloudOff,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(28.dp),
-                        )
-                        Spacer(Modifier.width(Space.sm))
-                        Text(
-                            text = "알림을 불러오지 못했어요",
-                            style = MaterialTheme.typography.headlineSmall,
-                            color = MaterialTheme.colorScheme.onBackground,
-                        )
-                    }
-                    Spacer(Modifier.height(Space.xs))
+        when {
+            failed -> Column {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Filled.CloudOff,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(22.dp),
+                    )
+                    Spacer(Modifier.width(Space.sm))
                     Text(
-                        text = "새 알림이 없는 게 아니라, 서버를 확인하지 못한 상태예요.",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        text = "알림을 불러오지 못했어요",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                 }
+                Spacer(Modifier.height(Space.xs))
+                Text(
+                    text = "새 알림이 없는 게 아니라, 서버를 확인하지 못한 상태예요.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
 
-                hasWork -> {
-                    Text(
-                        text = "확인이 필요해요",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Spacer(Modifier.height(Space.xs))
-                    Text(
-                        text = "${count}건",
-                        style = MaterialTheme.typography.displayLarge,
-                        color = MaterialTheme.colorScheme.primary,
+            hasWork -> LabeledValue(
+                label = "확인이 필요해요",
+                value = "${count}건",
+                valueColor = DangerRed,
+            )
+
+            else -> Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .background(SuccessGreen.copy(alpha = 0.12f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Check,
+                        contentDescription = null,
+                        tint = SuccessGreen,
+                        modifier = Modifier.size(18.dp),
                     )
                 }
-
-                else -> {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Filled.CheckCircle,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.secondary,
-                            modifier = Modifier.size(30.dp),
-                        )
-                        Spacer(Modifier.width(Space.sm))
-                        Text(
-                            text = "모두 확인했어요",
-                            style = MaterialTheme.typography.headlineSmall,
-                            color = MaterialTheme.colorScheme.onBackground,
-                        )
-                    }
-                    Spacer(Modifier.height(Space.xs))
+                Spacer(Modifier.width(Space.sm))
+                Column {
+                    Text(
+                        text = "모두 확인했어요",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
                     Text(
                         text = "확인이 필요한 알림이 없습니다.",
-                        style = MaterialTheme.typography.bodyLarge,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Start,
                     )
                 }
             }
@@ -333,11 +329,11 @@ private fun AlertListPreview() {
         AlertListScreen(
             state = AlertListUiState.Ready(
                 unconfirmed = listOf(
-                    previewEventRecord("a:1", "living-room", 0.9, "2026-08-16T13:30:00+09:00"),
-                    previewEventRecord("a:2", "bathroom", 0.72, "2026-08-16T08:12:00+09:00"),
-                    previewEventRecord("a:3", "bedroom", 0.55, "2026-08-15T21:05:00+09:00"),
-                    previewEventRecord("a:4", "kitchen", 0.61, "2026-08-15T18:00:00+09:00"),
-                    previewEventRecord("a:5", "entrance", 0.66, "2026-08-15T09:00:00+09:00"),
+                    previewEventRecord("a:1", "living-room", 0.9, "2026-08-17T13:30:00+09:00"),
+                    previewEventRecord("a:2", "bathroom", 0.72, "2026-08-17T08:12:00+09:00"),
+                    previewEventRecord("a:3", "bedroom", 0.55, "2026-08-16T21:05:00+09:00"),
+                    previewEventRecord("a:4", "kitchen", 0.61, "2026-08-16T18:00:00+09:00"),
+                    previewEventRecord("a:5", "entrance", 0.66, "2026-08-16T09:00:00+09:00"),
                 ),
                 history = emptyList(),
             ),
@@ -345,7 +341,8 @@ private fun AlertListPreview() {
             pendingSyncCount = 0,
             inactivityMinutes = 192,
             parentProfile = ParentProfile.MOCK,
-            onEventClick = {}, onSeeAll = {}, onOpenSettings = {},
+            confirmedCount = 2,
+            onEventClick = {}, onSeeAll = {}, onOpenConfirmed = {}, onOpenSettings = {},
             onSimulatePush = {}, onRetry = {},
         )
     }
@@ -360,7 +357,7 @@ private fun AlertListAllClearPreview() {
                 unconfirmed = emptyList(),
                 history = listOf(
                     previewEventRecord(
-                        "a:9", "kitchen", 0.83, "2026-08-15T14:47:00+09:00", Confirmation.NORMAL,
+                        "a:9", "kitchen", 0.83, "2026-08-16T14:47:00+09:00", Confirmation.NORMAL,
                     ),
                 ),
             ),
@@ -368,7 +365,8 @@ private fun AlertListAllClearPreview() {
             pendingSyncCount = 0,
             inactivityMinutes = 42,
             parentProfile = ParentProfile.MOCK,
-            onEventClick = {}, onSeeAll = {}, onOpenSettings = {},
+            confirmedCount = 1,
+            onEventClick = {}, onSeeAll = {}, onOpenConfirmed = {}, onOpenSettings = {},
             onSimulatePush = {}, onRetry = {},
         )
     }
@@ -384,7 +382,8 @@ private fun AlertListOfflinePreview() {
             pendingSyncCount = 1,
             inactivityMinutes = 192,
             parentProfile = ParentProfile.MOCK,
-            onEventClick = {}, onSeeAll = {}, onOpenSettings = {},
+            confirmedCount = 0,
+            onEventClick = {}, onSeeAll = {}, onOpenConfirmed = {}, onOpenSettings = {},
             onSimulatePush = {}, onRetry = {},
         )
     }

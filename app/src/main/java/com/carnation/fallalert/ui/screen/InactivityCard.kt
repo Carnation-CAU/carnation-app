@@ -1,5 +1,7 @@
 package com.carnation.fallalert.ui.screen
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -8,33 +10,31 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.HourglassBottom
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.carnation.fallalert.ui.theme.BgGray
 import com.carnation.fallalert.ui.theme.CarnationTheme
-import com.carnation.fallalert.ui.theme.Elevation
-import com.carnation.fallalert.ui.theme.Radius
 import com.carnation.fallalert.ui.theme.Space
+import com.carnation.fallalert.ui.theme.TextSecondary
+import com.carnation.fallalert.ui.theme.WarnAmber
 
 /**
- * 장시간 무동작 경보. 홈 최상단 고정.
+ * 장시간 무동작. 홈 최상단 고정.
  *
- * 낙상 알림과 **별개**다. 낙상은 "사건이 일어났다"이고 이건 "아무 일도 안 일어나고 있다"라서,
- * 카드 모양도 색도 다르게 잡았다.
- *
- * 색 구간은 넣지 않았다(명세상 선택). 주황을 추가하면 경고색인 코랄과 색상이 붙어
- * "낙상 의심"과 "무동작"이 같은 급으로 보인다. 대신 시간이 길어지면 배경과 글자 굵기로
- * 무게를 올린다. 임계값·색 기준은 서버·모델 팀과 협의 후 정하기로 한 항목이다.
+ * 낙상 카드와 **다른 층위**다. 낙상은 "사건이 일어났다", 이건 "아무 일도 안 일어나고 있다".
+ * 그래서 색을 쓰지 않고 흰 카드에 큰 숫자만 둔다. 길어지면 아이콘과 라벨에만
+ * WarnAmber 를 얹는다 — 카드 전체를 물들이면 낙상 카드와 급이 같아 보인다.
  */
 @Composable
 fun InactivityCard(
@@ -42,37 +42,42 @@ fun InactivityCard(
     modifier: Modifier = Modifier,
 ) {
     val prolonged = minutes >= PROLONGED_THRESHOLD_MINUTES
-    val scheme = MaterialTheme.colorScheme
+    val accent = if (prolonged) WarnAmber else TextSecondary
 
-    Surface(
-        color = if (prolonged) scheme.surfaceVariant else scheme.surface,
-        shape = Radius.card,
-        shadowElevation = Elevation.card,
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        Row(
-            modifier = Modifier.padding(Space.xl),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = if (prolonged) Icons.Filled.HourglassBottom else Icons.Filled.Bedtime,
-                contentDescription = null,
-                tint = scheme.onSurfaceVariant,
-                modifier = Modifier.size(28.dp),
-            )
+    AppCard(modifier = modifier) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(if (prolonged) WarnAmber.copy(alpha = 0.12f) else BgGray),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = if (prolonged) {
+                        Icons.Filled.HourglassBottom
+                    } else {
+                        Icons.Filled.Bedtime
+                    },
+                    contentDescription = null,
+                    tint = accent,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+
             Spacer(Modifier.width(Space.lg))
+
             Column {
                 Text(
-                    text = "움직임 없음",
+                    text = "마지막으로 움직인 지",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = scheme.onSurfaceVariant,
+                    color = accent,
                 )
-                Spacer(Modifier.height(2.dp))
+                Spacer(Modifier.height(Space.xs))
                 Text(
-                    text = "${formatDuration(minutes)}째",
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = scheme.onSurface,
-                    fontWeight = if (prolonged) FontWeight.Bold else FontWeight.SemiBold,
+                    text = formatDuration(minutes),
+                    style = MaterialTheme.typography.displayMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
             }
         }
@@ -94,13 +99,13 @@ fun formatDuration(minutes: Int): String {
 /** 3시간. 잠자는 시간과 구분되기 시작하는 지점으로 잡은 임시값. */
 private const val PROLONGED_THRESHOLD_MINUTES = 180
 
-@Preview(showBackground = true, widthDp = 400, name = "짧음")
+@Preview(showBackground = true, widthDp = 400, backgroundColor = 0xFFF2F4F6, name = "짧음")
 @Composable
 private fun InactivityShortPreview() {
     CarnationTheme { InactivityCard(minutes = 45, modifier = Modifier.padding(Space.xl)) }
 }
 
-@Preview(showBackground = true, widthDp = 400, name = "길어짐")
+@Preview(showBackground = true, widthDp = 400, backgroundColor = 0xFFF2F4F6, name = "길어짐")
 @Composable
 private fun InactivityLongPreview() {
     CarnationTheme { InactivityCard(minutes = 192, modifier = Modifier.padding(Space.xl)) }

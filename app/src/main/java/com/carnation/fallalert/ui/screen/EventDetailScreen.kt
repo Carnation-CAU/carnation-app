@@ -1,7 +1,6 @@
 package com.carnation.fallalert.ui.screen
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,7 +8,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -21,44 +19,40 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.DirectionsRun
 import androidx.compose.material.icons.filled.AccessTime
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.carnation.fallalert.model.Confirmation
-
 import com.carnation.fallalert.model.EventRecord
 import com.carnation.fallalert.model.Evidence
 import com.carnation.fallalert.model.FallEvent
+import com.carnation.fallalert.model.NormalReason
 import com.carnation.fallalert.model.ParentProfile
 import com.carnation.fallalert.model.PresenceState
 import com.carnation.fallalert.ui.EventDetailUiState
+import com.carnation.fallalert.ui.theme.BgGray
 import com.carnation.fallalert.ui.theme.CarnationTheme
-import com.carnation.fallalert.ui.theme.Elevation
-import com.carnation.fallalert.ui.theme.Radius
+import com.carnation.fallalert.ui.theme.DangerBg
+import com.carnation.fallalert.ui.theme.DangerRed
 import com.carnation.fallalert.ui.theme.Space
-import com.carnation.fallalert.ui.theme.TouchTarget
+import com.carnation.fallalert.ui.theme.TextSecondary
 import com.carnation.fallalert.util.detectedAtInstant
 import com.carnation.fallalert.util.formatSeconds
 import com.carnation.fallalert.util.motionLabel
@@ -66,39 +60,44 @@ import com.carnation.fallalert.util.roomLabel
 import com.carnation.fallalert.util.toAbsoluteKorean
 import com.carnation.fallalert.util.toPercent
 
-/** 화면 B — 상세 */
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * 화면 B — 상세
+ *
+ * 위험도 숫자가 화면의 주인공이다. 명세서에서 금액을 다루듯 크게 두고, 근거는 그 아래
+ * 라벨-값 리스트로 얇은 Hairline 으로만 나눈다.
+ *
+ * 확인 버튼은 하나다. "도움 필요"는 하단 119 버튼이 겸한다 — 119에 정보를 보내기로 했다는
+ * 것 자체가 도움이 필요하다는 판단이고, 같은 결정을 두 번 누르게 할 이유가 없다.
+ *
+ * `presence`(사람 존재)와 `window_id`(감지 구간)는 화면에서 뺐다. 계약(`FallEvent`)에는
+ * 그대로 있고 서버도 계속 보낸다 — 보호자가 판단에 쓰지 않는 값이라 표시만 하지 않는다.
+ */
 @Composable
 fun EventDetailScreen(
     state: EventDetailUiState,
     parentProfile: ParentProfile,
-    onConfirm: (Confirmation) -> Unit,
+    onHelpNeeded: () -> Unit,
+    onNoHelpNeeded: (List<NormalReason>) -> Unit,
     onBackToList: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Scaffold(
-        modifier = modifier,
-        topBar = {
-            TopAppBar(
-                title = { Text("상세 내용") },
-                navigationIcon = {
-                    IconButton(onClick = onBackToList) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "목록으로")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface,
-                ),
-            )
-        },
-    ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .background(MaterialTheme.colorScheme.background),
-        ) {
+    var askingReasons by rememberSaveable { mutableStateOf(false) }
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background),
+    ) {
+        ScreenTitle(
+            title = "상세 내용",
+            navigationIcon = {
+                IconButton(onClick = onBackToList) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "목록으로")
+                }
+            },
+        )
+
+        Box(modifier = Modifier.weight(1f)) {
             when (state) {
                 EventDetailUiState.Loading ->
                     CircularProgressIndicator(Modifier.align(Alignment.Center))
@@ -110,12 +109,27 @@ fun EventDetailScreen(
                     DetailContent(
                         record = state.record,
                         pendingSync = state.pendingSync,
-                        parentProfile = parentProfile,
-                        onConfirm = onConfirm,
-                        onBackToList = onBackToList,
+                        onAskReasons = { askingReasons = true },
                     )
             }
         }
+
+        BottomBarSurface {
+            ParentActionBar(
+                profile = parentProfile,
+                onEmergencyComposed = onHelpNeeded,
+            )
+        }
+    }
+
+    if (askingReasons) {
+        NormalReasonSheet(
+            onDismiss = { askingReasons = false },
+            onSubmit = { reasons ->
+                askingReasons = false
+                onNoHelpNeeded(reasons)
+            },
+        )
     }
 }
 
@@ -123,136 +137,109 @@ fun EventDetailScreen(
 private fun DetailContent(
     record: EventRecord,
     pendingSync: Boolean,
-    parentProfile: ParentProfile,
-    onConfirm: (Confirmation) -> Unit,
-    onBackToList: () -> Unit,
+    onAskReasons: () -> Unit,
 ) {
     val event = record.event
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
+            .padding(horizontal = Space.xl),
     ) {
-        Box(
-            modifier = Modifier
-                .size(96.dp)
-                .background(MaterialTheme.colorScheme.primary, CircleShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = Icons.Filled.Warning,
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(56.dp),
-            )
+        // 어디서 · 언제. 상단 타이틀이 "상세 내용"이라 여기서 사건을 말한다.
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(DangerBg),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Warning,
+                    contentDescription = null,
+                    tint = DangerRed,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+            Spacer(Modifier.width(Space.md))
+            Column {
+                Text(
+                    text = "${roomLabel(event.roomId)}에서 낙상 의심",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = event.detectedAtInstant().toAbsoluteKorean(),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
 
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(Space.xl))
 
-        Text(
-            text = "${roomLabel(event.roomId)}에서 낙상 의심",
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.onBackground,
-            textAlign = TextAlign.Center,
-        )
-        Spacer(Modifier.height(6.dp))
-        Text(
-            text = event.detectedAtInstant().toAbsoluteKorean() + " 감지",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        AppCard {
+            LabeledValue(
+                label = "위험도",
+                value = "${event.riskScore.toPercent()}%",
+                valueColor = DangerRed,
+                valueStyle = MaterialTheme.typography.displayLarge,
+            )
+            Spacer(Modifier.height(Space.lg))
+            RiskBar(event.riskScore)
 
-        Spacer(Modifier.height(24.dp))
-        RiskCard(event.riskScore)
-        Spacer(Modifier.height(20.dp))
-        EvidenceCard(event)
-        Spacer(Modifier.height(28.dp))
+            Spacer(Modifier.height(Space.xl))
+            HairlineDivider()
+            Spacer(Modifier.height(Space.lg))
 
-        if (record.confirmation == null) {
-            // 명세 8장이 2버튼을 요구하므로 버튼 수는 줄이지 않는다. 대신 **주 CTA 는 하나**로
-            // 만든다: 도움 요청은 채운 코랄, 정상은 톤다운된 블루. 둘 다 채우면 보호자가
-            // 급할 때 어디를 눌러야 할지 한 번 더 생각하게 된다.
             Text(
-                text = "어떤 상황인가요?",
+                text = "판단 근거",
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialTheme.colorScheme.onSurface,
             )
             Spacer(Modifier.height(Space.md))
-            Button(
-                onClick = { onConfirm(Confirmation.HELP_NEEDED) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = TouchTarget.primaryAction),
-                shape = Radius.button,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                ),
-            ) {
-                Text("도움이 필요해요")
+
+            EvidenceRow(
+                icon = Icons.AutoMirrored.Filled.DirectionsRun,
+                label = "움직임",
+                value = motionLabel(event.evidence.motionLabel),
+                detail = "${event.evidence.motionConfidence.toPercent()}%",
+            )
+            // 선택 필드 — 값이 없으면 행 자체를 숨긴다.
+            event.evidence.noRecoverySec?.let { seconds ->
+                Spacer(Modifier.height(Space.md))
+                HairlineDivider()
+                Spacer(Modifier.height(Space.md))
+                EvidenceRow(
+                    icon = Icons.Filled.AccessTime,
+                    label = "회복 없음",
+                    value = "${formatSeconds(seconds)}초 동안 일어나지 못함",
+                    detail = null,
+                )
             }
-            Spacer(Modifier.height(Space.md))
-            Button(
-                onClick = { onConfirm(Confirmation.NORMAL) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = TouchTarget.primaryAction),
-                shape = Radius.button,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                ),
-            ) {
-                Text("정상이에요")
-            }
+        }
+
+        Spacer(Modifier.height(Space.xxl))
+
+        if (record.confirmation == null) {
+            SecondaryActionButton(
+                text = "도움은 필요 없어요",
+                onClick = onAskReasons,
+            )
+            Spacer(Modifier.height(Space.sm))
+            Text(
+                text = "실제로 어떤 상황이었는지 알려주면 잘못된 알림을 줄일 수 있어요.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+            )
         } else {
             AlreadyConfirmedNotice(record.confirmation, pendingSync)
         }
 
         Spacer(Modifier.height(Space.xl))
-        // 홈과 같은 자리·같은 모양. 급할 때 위치를 다시 찾게 하면 안 된다.
-        ParentActionBar(profile = parentProfile)
-
-        Spacer(Modifier.height(Space.md))
-        // 경고색(코랄)을 쓰지 않는다. 단순 이동 링크라 위험 신호와 구분되어야 한다.
-        TextButton(
-            onClick = onBackToList,
-            colors = ButtonDefaults.textButtonColors(
-                contentColor = MaterialTheme.colorScheme.secondary,
-            ),
-        ) {
-            Text("목록으로")
-        }
-    }
-}
-
-@Composable
-private fun RiskCard(riskScore: Double) {
-    Surface(
-        color = MaterialTheme.colorScheme.primaryContainer,
-        shape = Radius.card,
-        shadowElevation = Elevation.card,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text(
-                text = "위험도",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-            )
-            Text(
-                text = "${riskScore.toPercent()}%",
-                style = MaterialTheme.typography.displaySmall,
-                color = MaterialTheme.colorScheme.primary,
-            )
-            Spacer(Modifier.height(10.dp))
-            RiskBar(riskScore)
-        }
     }
 }
 
@@ -262,67 +249,21 @@ private fun RiskBar(riskScore: Double) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(14.dp)
-            .background(
-                MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.15f),
-                RoundedCornerShape(7.dp),
-            ),
+            .height(8.dp)
+            .clip(RoundedCornerShape(4.dp))
+            .background(BgGray),
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth(fraction)
-                .height(14.dp)
-                .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(7.dp)),
+                .height(8.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(DangerRed),
         )
     }
 }
 
-@Composable
-private fun EvidenceCard(event: FallEvent) {
-    val evidence = event.evidence
-    Surface(
-        color = MaterialTheme.colorScheme.surface,
-        shape = Radius.card,
-        shadowElevation = Elevation.card,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(Modifier.padding(20.dp)) {
-            Text(
-                text = "상세 정보",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Spacer(Modifier.height(12.dp))
-
-            EvidenceRow(
-                icon = Icons.AutoMirrored.Filled.DirectionsRun,
-                label = "움직임",
-                value = motionLabel(evidence.motionLabel),
-                detail = "${evidence.motionConfidence.toPercent()}%",
-            )
-            // presence(사람 존재/확률)는 화면에서 뺐다. 계약(FallEvent.Evidence)에는 그대로
-            // 남아 있고 서버도 계속 보낸다 — 표시만 하지 않는다.
-            // 선택 필드 — 값이 없으면 행 자체를 숨긴다. (명세 3장 화면 B)
-            evidence.noRecoverySec?.let { seconds ->
-                HorizontalDivider(Modifier.padding(vertical = 12.dp))
-                EvidenceRow(
-                    icon = Icons.Filled.AccessTime,
-                    label = "회복 없음",
-                    value = "${formatSeconds(seconds)}초 동안 일어나지 못함",
-                    detail = null,
-                )
-            }
-            HorizontalDivider(Modifier.padding(vertical = 12.dp))
-            EvidenceRow(
-                icon = Icons.Filled.Timeline,
-                label = "감지 구간",
-                value = event.windowId,
-                detail = null,
-            )
-        }
-    }
-}
-
+/** 라벨-값 한 행. 아이콘은 작게, 값은 본문 크기로. */
 @Composable
 private fun EvidenceRow(
     icon: ImageVector,
@@ -334,14 +275,14 @@ private fun EvidenceRow(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(28.dp),
+            tint = TextSecondary,
+            modifier = Modifier.size(20.dp),
         )
-        Spacer(Modifier.width(14.dp))
+        Spacer(Modifier.width(Space.md))
         Column(Modifier.weight(1f)) {
             Text(
                 text = label,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
@@ -362,110 +303,109 @@ private fun EvidenceRow(
 
 @Composable
 private fun AlreadyConfirmedNotice(confirmation: Confirmation, pendingSync: Boolean) {
-    val isNormal = confirmation == Confirmation.NORMAL
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-    Surface(
-        color = if (isNormal) {
-            MaterialTheme.colorScheme.secondaryContainer
-        } else {
-            MaterialTheme.colorScheme.primaryContainer
-        },
-        shape = RoundedCornerShape(16.dp),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = if (isNormal) Icons.Filled.CheckCircle else Icons.Filled.Warning,
-                contentDescription = null,
-                tint = if (isNormal) {
-                    MaterialTheme.colorScheme.secondary
-                } else {
-                    MaterialTheme.colorScheme.primary
-                },
-                modifier = Modifier.size(32.dp),
-            )
-            Spacer(Modifier.width(12.dp))
-            Text(
-                text = if (isNormal) "정상으로 확인한 알림이에요" else "도움 요청을 접수한 알림이에요",
-                style = MaterialTheme.typography.bodyLarge,
-                color = if (isNormal) {
-                    MaterialTheme.colorScheme.onSecondaryContainer
-                } else {
-                    MaterialTheme.colorScheme.onPrimaryContainer
-                },
-            )
+        AppCard(contentPadding = Space.lg) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                ConfirmationBadge(confirmation)
+                Spacer(Modifier.width(Space.md))
+                Text(
+                    text = if (confirmation == Confirmation.NORMAL) {
+                        "정상으로 확인한 알림이에요"
+                    } else {
+                        "도움 요청을 접수한 알림이에요"
+                    },
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
         }
-    }
 
         if (pendingSync) {
-            Spacer(Modifier.height(10.dp))
-            SyncStatusText(pendingSync = true)
+            Spacer(Modifier.height(Space.sm))
+            Text(
+                text = "아직 전송하지 못했어요. 연결되면 자동으로 다시 보냅니다.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
         }
     }
-}
-
-/**
- * 확인 결과가 서버에 갔는지. 보호자에게 "보냈다"고 말해 놓고 실제로는 큐에 있는 상태가
- * 제일 위험하므로, 전송 전과 후를 다른 문구로 구분한다.
- */
-@Composable
-fun SyncStatusText(pendingSync: Boolean, modifier: Modifier = Modifier) {
-    Text(
-        text = if (pendingSync) {
-            "아직 전송하지 못했어요. 연결되면 자동으로 다시 보냅니다."
-        } else {
-            "서버에 전달했어요."
-        },
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        textAlign = TextAlign.Center,
-        modifier = modifier,
-    )
 }
 
 @Composable
 private fun NotFoundState(onBackToList: () -> Unit, modifier: Modifier = Modifier) {
     Column(
-        modifier = modifier.padding(32.dp),
+        modifier = modifier.padding(Space.section),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
             text = "알림을 찾을 수 없어요",
             style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
         )
-        Spacer(Modifier.height(16.dp))
-        TextButton(
-            onClick = onBackToList,
-            colors = ButtonDefaults.textButtonColors(
-                contentColor = MaterialTheme.colorScheme.secondary,
-            ),
-        ) {
-            Text("목록으로")
+        Spacer(Modifier.height(Space.lg))
+        TextButton(onClick = onBackToList) {
+            Text("목록으로", color = MaterialTheme.colorScheme.primary)
         }
     }
 }
 
-@Preview(showBackground = true, heightDp = 1100)
+private fun detailPreviewRecord(
+    noRecoverySec: Double? = 4.0,
+    confirmation: Confirmation? = null,
+) = EventRecord(
+    FallEvent(
+        "1.0", "fall_suspected", "trial-01:7", "2026-08-17T10:30:00+09:00",
+        "living-room", 0.9,
+        Evidence("fall_like", 0.91, PresenceState.PRESENT, 0.95, noRecoverySec),
+    ),
+    confirmation,
+)
+
+@Preview(showBackground = true, heightDp = 900, name = "미확인")
 @Composable
 private fun EventDetailPreview() {
     CarnationTheme {
         EventDetailScreen(
+            state = EventDetailUiState.Ready(detailPreviewRecord(), pendingSync = false),
+            parentProfile = ParentProfile.MOCK,
+            onHelpNeeded = {},
+            onNoHelpNeeded = {},
+            onBackToList = {},
+        )
+    }
+}
+
+@Preview(showBackground = true, heightDp = 900, name = "회복 없음 값 없을 때")
+@Composable
+private fun EventDetailNoRecoveryPreview() {
+    CarnationTheme {
+        EventDetailScreen(
             state = EventDetailUiState.Ready(
-                record = EventRecord(
-                    FallEvent(
-                        "1.0", "fall_suspected", "trial-01:7", "2026-08-05T10:30:00+09:00",
-                        "living-room", 0.9,
-                        Evidence("fall_like", 0.91, PresenceState.PRESENT, 0.95, 4.0),
-                    )
-                ),
+                detailPreviewRecord(noRecoverySec = null),
                 pendingSync = false,
             ),
             parentProfile = ParentProfile.MOCK,
-            onConfirm = {},
+            onHelpNeeded = {},
+            onNoHelpNeeded = {},
+            onBackToList = {},
+        )
+    }
+}
+
+@Preview(showBackground = true, heightDp = 900, name = "확인 완료")
+@Composable
+private fun EventDetailConfirmedPreview() {
+    CarnationTheme {
+        EventDetailScreen(
+            state = EventDetailUiState.Ready(
+                detailPreviewRecord(confirmation = Confirmation.HELP_NEEDED),
+                pendingSync = true,
+            ),
+            parentProfile = ParentProfile.MOCK,
+            onHelpNeeded = {},
+            onNoHelpNeeded = {},
             onBackToList = {},
         )
     }

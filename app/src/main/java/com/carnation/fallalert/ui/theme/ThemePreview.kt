@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,30 +23,29 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 
 /**
- * [Theme.kt] 를 고치면서 결과를 바로 보라고 만든 프리뷰 전용 파일.
- *
- * Theme.kt 자체에는 그릴 것이 없어서 프리뷰가 뜨지 않는다. 색·글씨 크기를 만질 때는
- * 이 파일을 Split 으로 열어 두면 팔레트와 타이포가 한 화면에 보인다.
+ * 팔레트·타이포를 한눈에 보는 프리뷰. [Theme.kt] · [Color.kt] · [Type.kt] 를 고치면 즉시 반영된다.
  * 앱 동작에는 관여하지 않는다.
  */
 @Composable
-private fun Swatch(name: String, color: Color, onColor: Color, usage: String) {
+private fun Swatch(name: String, color: Color, usage: String, onColor: Color? = null) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = Space.xs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
             modifier = Modifier
-                .size(56.dp)
-                .clip(RoundedCornerShape(10.dp))
+                .size(52.dp)
+                .clip(Radius.chip)
                 .background(color),
             contentAlignment = Alignment.Center,
         ) {
-            Text("가", style = MaterialTheme.typography.bodyLarge, color = onColor)
+            if (onColor != null) {
+                Text("가", style = MaterialTheme.typography.bodyLarge, color = onColor)
+            }
         }
-        Spacer(Modifier.width(12.dp))
+        Spacer(Modifier.width(Space.lg))
         Column {
-            Text(name, style = MaterialTheme.typography.bodyLarge)
+            Text(name, style = MaterialTheme.typography.titleMedium)
             Text(
                 usage,
                 style = MaterialTheme.typography.bodyMedium,
@@ -58,80 +56,69 @@ private fun Swatch(name: String, color: Color, onColor: Color, usage: String) {
 }
 
 @Composable
-private fun TypeSample(name: String, style: TextStyle) {
+private fun TypeSample(name: String, style: TextStyle, sample: String = "낙상 의심 90%") {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = Space.xs),
         verticalAlignment = Alignment.Bottom,
     ) {
         Text(
             text = name,
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.width(130.dp),
+            modifier = Modifier.width(120.dp),
         )
-        Text("낙상 의심 90%", style = style)
+        Text(sample, style = style)
     }
 }
 
+@Preview(name = "팔레트 · 타이포", showBackground = true, heightDp = 1500, widthDp = 400)
 @Composable
-private fun DesignSystem() {
-    val scheme = MaterialTheme.colorScheme
-    Column(
-        modifier = Modifier
-            .background(scheme.background)
-            .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(2.dp),
-    ) {
-        Text("색", style = MaterialTheme.typography.titleLarge)
-        Spacer(Modifier.height(8.dp))
-        Swatch("primary", scheme.primary, scheme.onPrimary, "경고 · 미확인 · 도움 필요 버튼 (코랄)")
-        Swatch("primaryContainer", scheme.primaryContainer, scheme.onPrimaryContainer, "미확인 카드 배경")
-        Swatch("secondary", scheme.secondary, scheme.onSecondary, "정상 버튼 · 안심 (블루)")
-        Swatch("secondaryContainer", scheme.secondaryContainer, scheme.onSecondaryContainer, "정상 확인 배경")
-        Swatch("tertiary", scheme.tertiary, scheme.onTertiary, "네이비 — 베이스 잉크")
-        Swatch("surfaceVariant", scheme.surfaceVariant, scheme.onSurfaceVariant, "확인 완료 이력 · 배너")
-        Swatch("surface", scheme.surface, scheme.onSurface, "카드 · 상단바")
-        Swatch("background", scheme.background, scheme.onBackground, "화면 바탕")
+private fun DesignSystemPreview() {
+    CarnationTheme {
+        Column(
+            modifier = Modifier
+                .background(MaterialTheme.colorScheme.background)
+                .padding(Space.xl),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text("브랜드", style = MaterialTheme.typography.titleLarge)
+            Spacer(Modifier.height(Space.sm))
+            Swatch("BluePrimary", BluePrimary, "주요 버튼 · 링크 · 포인트", Color.White)
+            Swatch("BlueLight", BlueLight, "연한 강조 · 선택 칩", NavyDeep)
+            Swatch("NavyDeep", NavyDeep, "헤드라인 · 강조 텍스트", Color.White)
 
-        Spacer(Modifier.height(12.dp))
-        Text("볼터치 (글자를 얹지 않는 곳에만)", style = MaterialTheme.typography.titleMedium)
-        Spacer(Modifier.height(6.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            listOf(CoralSoft, SignalBlue, NavySoft).forEach { c ->
-                Box(Modifier.size(48.dp).clip(RoundedCornerShape(10.dp)).background(c))
-            }
+            Spacer(Modifier.height(Space.xl))
+            Text("뉴트럴", style = MaterialTheme.typography.titleLarge)
+            Spacer(Modifier.height(Space.sm))
+            Swatch("BgGray", BgGray, "화면 배경", TextPrimary)
+            Swatch("SurfaceWhite", SurfaceWhite, "카드 · 시트", TextPrimary)
+            Swatch("TextPrimary", TextPrimary, "본문", Color.White)
+            Swatch("TextSecondary", TextSecondary, "보조 회색", Color.White)
+            Swatch("TextMuted", TextMuted, "힌트 · 캡션", Color.White)
+            Swatch("Hairline", Hairline, "얇은 구분선", TextPrimary)
+
+            Spacer(Modifier.height(Space.xl))
+            Text("상태", style = MaterialTheme.typography.titleLarge)
+            Spacer(Modifier.height(Space.sm))
+            Swatch("DangerRed", DangerRed, "낙상 의심 — 이것만 빨강", Color.White)
+            Swatch("DangerBg", DangerBg, "낙상 카드 배경", DangerRed)
+            Swatch("WarnAmber", WarnAmber, "무동작 경계", Color.White)
+            Swatch("SuccessGreen", SuccessGreen, "정상 확인", Color.White)
+
+            Spacer(Modifier.height(Space.xl))
+            Text("타이포", style = MaterialTheme.typography.titleLarge)
+            Spacer(Modifier.height(Space.sm))
+            val t = MaterialTheme.typography
+            TypeSample("displayLarge", t.displayLarge, "90%")
+            TypeSample("displayMedium", t.displayMedium, "3시간 12분")
+            TypeSample("headlineMedium", t.headlineMedium, "낙상 의심 알림")
+            TypeSample("headlineSmall", t.headlineSmall, "확인한 알림이 없어요")
+            TypeSample("titleLarge", t.titleLarge, "확인이 필요해요")
+            TypeSample("titleMedium", t.titleMedium, "거실")
+            TypeSample("bodyLarge", t.bodyLarge, "넘어짐과 유사한 움직임")
+            TypeSample("bodyMedium", t.bodyMedium, "8월 5일 오전 10:30")
+            TypeSample("bodySmall", t.bodySmall, "화면만 열려요")
+            TypeSample("labelLarge", t.labelLarge, "119에 정보 보내기")
         }
-
-        Spacer(Modifier.height(20.dp))
-        Text("글씨", style = MaterialTheme.typography.titleLarge)
-        Spacer(Modifier.height(8.dp))
-        val type = MaterialTheme.typography
-        TypeSample("displaySmall", type.displaySmall)
-        TypeSample("headlineMedium", type.headlineMedium)
-        TypeSample("headlineSmall", type.headlineSmall)
-        TypeSample("titleLarge", type.titleLarge)
-        TypeSample("titleMedium", type.titleMedium)
-        TypeSample("bodyLarge", type.bodyLarge)
-        TypeSample("bodyMedium", type.bodyMedium)
-        TypeSample("labelLarge", type.labelLarge)
-
-        Spacer(Modifier.height(16.dp))
-        Text(
-            "고령 사용자 대응이라 본문이 19sp 부터다. 줄이기 전에 명세 8장을 확인할 것.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
     }
-}
-
-@Preview(name = "팔레트 · 라이트", showBackground = true, heightDp = 1100)
-@Composable
-private fun DesignSystemLightPreview() {
-    CarnationTheme(darkTheme = false) { DesignSystem() }
-}
-
-@Preview(name = "팔레트 · 다크", showBackground = true, heightDp = 1100)
-@Composable
-private fun DesignSystemDarkPreview() {
-    CarnationTheme(darkTheme = true) { DesignSystem() }
 }

@@ -123,7 +123,11 @@ class FallEventRepository(
      * 보호자의 확인. 화면은 즉시 반응해야 하므로 로컬을 먼저 바꾸고(낙관적 갱신),
      * 전송은 아웃박스를 통해 보장한다.
      */
-    suspend fun confirm(windowId: String, confirmation: Confirmation) {
+    suspend fun confirm(
+        windowId: String,
+        confirmation: Confirmation,
+        reasons: List<String> = emptyList(),
+    ) {
         _records.update { current ->
             current.map { if (it.id == windowId) it.copy(confirmation = confirmation) else it }
         }
@@ -133,6 +137,7 @@ class FallEventRepository(
                 confirmation = confirmation,
                 reportedAt = nowIso(),
                 clientId = clientId,
+                reasons = reasons,
             )
         )
         flushOutbox()

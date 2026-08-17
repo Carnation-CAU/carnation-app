@@ -4,47 +4,56 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.unit.dp
 
 /**
- * 간격·모서리·그림자 토큰.
- *
- * 값을 화면마다 직접 적으면 "여백 넉넉하게"가 화면마다 다른 뜻이 된다.
- * 밀도를 조정할 때는 여기 숫자만 만진다.
+ * 간격 토큰. 미니멀은 여백에서 나오므로 이 숫자들이 디자인의 절반이다.
+ * 밀도를 조정할 땐 화면을 고치지 말고 여기만 만진다.
  */
 object Space {
     val xs = 4.dp
     val sm = 8.dp
     val md = 12.dp
     val lg = 16.dp
-    val xl = 24.dp
-    val xxl = 32.dp
-    val section = 40.dp
+
+    /** 화면 좌우 패딩 · 카드 안쪽 패딩. 둘을 같은 값으로 두면 리듬이 맞는다. */
+    val xl = 20.dp
+
+    /** 섹션 사이 */
+    val xxl = 28.dp
+    val section = 32.dp
 }
 
 object Radius {
-    /** 카드. 크게 굴려야 정보 밀도가 낮아 보인다. */
-    val card = RoundedCornerShape(24.dp)
-    val button = RoundedCornerShape(18.dp)
-    val chip = RoundedCornerShape(12.dp)
+    val card = RoundedCornerShape(16.dp)
+    val button = RoundedCornerShape(14.dp)
+    val chip = RoundedCornerShape(10.dp)
     val pill = RoundedCornerShape(percent = 50)
 }
 
+/**
+ * 그림자를 거의 쓰지 않는다.
+ *
+ * 카드는 회색 배경(BgGray) 위의 흰 면으로 이미 분리된다. 거기에 그림자를 얹으면
+ * 카드마다 뜬 느낌이 나고, 그게 "AI가 만든 화면" 특유의 무거움이다.
+ * 예외는 하단 고정 바처럼 콘텐츠가 실제로 밑을 지나가는 경우뿐이다.
+ */
 object Elevation {
-    /**
-     * 그림자는 은은하게. 카드를 띄우는 게 목적이 아니라 바탕에서 살짝 떼어내는 게 목적이다.
-     * 2dp 를 넘기면 화면이 무거워진다.
-     */
-    val card = 1.dp
-    val raised = 3.dp
+    val none = 0.dp
+
+    /** 활성 세그먼트·하단 고정 바. 있는지 모를 정도로만. */
+    val subtle = 1.dp
 }
 
 object Motion {
-    /** 상태 전환. 짧게 — 알림 앱에서 느린 전환은 초조함이 된다. */
     const val FAST = 120
     const val NORMAL = 220
-    const val SLOW = 360
 }
 
-/** 터치 목표 최소 높이. 명세 8장(고령 대응) 기준으로 Material 기본 48dp 보다 크게 잡는다. */
+/** 터치 목표. 사용자는 보호자(성인)라 Material 기준을 따르고, 주 액션만 넉넉하게. */
 object TouchTarget {
-    val minimum = 56.dp
-    val primaryAction = 64.dp
+    val minimum = 48.dp
+
+    /** 하단 풀와이드 버튼 높이 */
+    val primaryAction = 56.dp
 }
+
+/** 얇은 구분선 두께. 1dp 는 고밀도 화면에서 두껍게 보인다. */
+val HairlineThickness = 1.dp

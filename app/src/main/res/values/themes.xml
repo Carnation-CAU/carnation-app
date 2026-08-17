@@ -1,8 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <!-- 실제 색상은 Compose 의 CarnationTheme 이 담당한다. 여기는 시작 화면용 최소 설정. -->
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!--
+    실제 색상은 Compose 의 CarnationTheme 이 담당한다. 여기는 앱이 뜨는 첫 프레임용 최소 설정.
+    배경이 밝으므로 상태바 아이콘을 어둡게(windowLightStatusBar) 둬야 시간·배터리가 보인다.
+    -->
     <style name="Theme.CarnationFallAlert" parent="android:Theme.Material.Light.NoActionBar">
-        <item name="android:statusBarColor">@android:color/white</item>
+        <item name="android:statusBarColor">@color/window_background</item>
         <item name="android:windowBackground">@color/window_background</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:navigationBarColor">@color/window_background</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="27">true</item>
     </style>
 </resources>

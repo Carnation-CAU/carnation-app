@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Compose 테마의 Canvas 와 맞춘다. 앱 시작 순간 색이 튀지 않게. -->
-    <color name="window_background">#F7F8FB</color>
-    <!-- 런처 아이콘 배경: 네이비 베이스 -->
-    <color name="ic_launcher_background">#2E3A59</color>
+    <!-- Compose 테마의 BgGray 와 맞춘다. 앱 시작 순간 색이 튀지 않게. -->
+    <color name="window_background">#F2F4F6</color>
+    <!-- 런처 아이콘 배경: NavyDeep -->
+    <color name="ic_launcher_background">#0D1B3D</color>
 </resources>

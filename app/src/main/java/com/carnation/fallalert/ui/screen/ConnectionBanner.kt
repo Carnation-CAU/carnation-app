@@ -1,6 +1,7 @@
 package com.carnation.fallalert.ui.screen
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -8,29 +9,33 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.carnation.fallalert.data.remote.ConnectionState
 import com.carnation.fallalert.ui.theme.CarnationTheme
+import com.carnation.fallalert.ui.theme.Radius
+import com.carnation.fallalert.ui.theme.Space
 
 /**
- * 서버 연결 상태 표시줄.
+ * 서버 연결 상태.
  *
- * 보호자 앱에서 제일 위험한 건 "조용히 끊겨 있는 상태"다. 알림이 안 온 건지 사고가 없었던 건지
- * 구분이 안 되기 때문에, 끊겨 있으면 반드시 눈에 보여야 한다.
- * 반대로 정상일 때 계속 띄워두면 경고 피로가 생기므로 연결됨 상태에서는 숨긴다.
+ * 조용히 끊겨 있는 상태가 이 앱에서 가장 위험하다 — 알림이 안 온 건지 사고가 없었던 건지
+ * 구분이 안 된다. 그래서 끊기면 반드시 보여준다.
+ *
+ * 다만 빨강을 쓰지 않는다. 이 화면에서 빨강은 "낙상 의심"의 색이고, 연결 문제는
+ * 낙상이 아니다. 뉴트럴 카드에 블루 액션으로 처리한다.
+ * 정상일 때는 아예 숨긴다 — 늘 띄워두면 경고 피로가 생긴다.
  */
 @Composable
 fun ConnectionBanner(
@@ -43,66 +48,52 @@ fun ConnectionBanner(
     val visible = state is ConnectionState.Connecting || offline != null || pendingSyncCount > 0
 
     AnimatedVisibility(visible = visible, modifier = modifier) {
-        when {
-            offline != null -> BannerRow(
-                icon = Icons.Filled.CloudOff,
-                text = "서버에 연결되지 않았어요" +
-                    if (pendingSyncCount > 0) " · 보낼 확인 ${pendingSyncCount}건" else "",
-                container = MaterialTheme.colorScheme.primaryContainer,
-                content = MaterialTheme.colorScheme.onPrimaryContainer,
-                action = "다시 시도" to onRetry,
-            )
+        val text = when {
+            offline != null -> "서버에 연결되지 않았어요" +
+                if (pendingSyncCount > 0) " · 보낼 확인 ${pendingSyncCount}건" else ""
 
-            state is ConnectionState.Connecting -> BannerRow(
-                icon = Icons.Filled.Sync,
-                text = "연결하는 중…",
-                container = MaterialTheme.colorScheme.surfaceVariant,
-                content = MaterialTheme.colorScheme.onSurfaceVariant,
-                action = null,
-            )
-
-            else -> BannerRow(
-                icon = Icons.Filled.CloudDone,
-                text = "확인 결과 ${pendingSyncCount}건을 보내는 중이에요",
-                container = MaterialTheme.colorScheme.surfaceVariant,
-                content = MaterialTheme.colorScheme.onSurfaceVariant,
-                action = null,
-            )
+            state is ConnectionState.Connecting -> "연결하는 중이에요"
+            else -> "확인 결과 ${pendingSyncCount}건을 보내는 중이에요"
         }
-    }
-}
+        val icon: ImageVector =
+            if (offline != null) Icons.Filled.CloudOff else Icons.Filled.Sync
 
-@Composable
-private fun BannerRow(
-    icon: ImageVector,
-    text: String,
-    container: androidx.compose.ui.graphics.Color,
-    content: androidx.compose.ui.graphics.Color,
-    action: Pair<String, () -> Unit>?,
-) {
-    Surface(color = container, modifier = Modifier.fillMaxWidth()) {
         Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Space.xl)
+                .clip(Radius.chip)
+                .background(MaterialTheme.colorScheme.surface)
+                .padding(horizontal = Space.lg, vertical = Space.md),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(icon, contentDescription = null, tint = content, modifier = Modifier.size(24.dp))
-            Spacer(Modifier.width(10.dp))
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(Modifier.width(Space.sm))
             Text(
                 text = text,
                 style = MaterialTheme.typography.bodyMedium,
-                color = content,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.weight(1f),
             )
-            if (action != null) {
-                TextButton(onClick = action.second) {
-                    Text(action.first, style = MaterialTheme.typography.bodyMedium)
+            if (offline != null) {
+                TextButton(onClick = onRetry, contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = Space.sm)) {
+                    Text(
+                        "다시 시도",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
                 }
             }
         }
     }
 }
 
-@Preview(showBackground = true)
+@Preview(showBackground = true, widthDp = 400, backgroundColor = 0xFFF2F4F6)
 @Composable
 private fun ConnectionBannerOfflinePreview() {
     CarnationTheme {
