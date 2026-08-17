@@ -19,15 +19,21 @@ data class ParentProfile(
     val healthNotes: String,
     val bloodType: String,
 ) {
-    /** 119 로 보낼 문자 본문. 구조대가 현장에 도착해서 바로 필요한 순서로 적는다. */
+    /**
+     * 119 로 보낼 문자 본문.
+     *
+     * 한 문단으로 이어 쓰지 않고 **한 줄에 한 정보**로 끊는다. 받는 쪽은 급한 상황에서
+     * 훑어 읽는 구조대원이다. 주소나 현관 비밀번호가 긴 문장 중간에 묻히면 안 된다.
+     * 순서는 현장에 도착해서 필요한 순서 — 누구인지, 어디인지, 어떻게 들어가는지.
+     */
     fun emergencyMessage(): String = buildString {
-        append("낙상 의심 발생. ")
-        append("$name(${age}세), ")
-        append("주소: $address, ")
-        append("현관 비밀번호: $doorCode, ")
-        append("특이사항: $healthNotes")
-        if (bloodType.isNotBlank()) append(", 혈액형: $bloodType")
-        append(". 확인 부탁드립니다.")
+        appendLine("[낙상 의심 발생]")
+        appendLine("$name (${age}세)")
+        appendLine("주소: $address")
+        appendLine("현관 비밀번호: $doorCode")
+        if (healthNotes.isNotBlank()) appendLine("특이사항: $healthNotes")
+        if (bloodType.isNotBlank()) appendLine("혈액형: $bloodType")
+        append("확인 부탁드립니다.")
     }
 
     companion object {

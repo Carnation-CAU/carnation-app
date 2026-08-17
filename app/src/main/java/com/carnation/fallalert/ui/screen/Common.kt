@@ -203,17 +203,21 @@ fun PrimaryActionButton(
     leadingIcon: ImageVector? = null,
     containerColor: Color = MaterialTheme.colorScheme.primary,
     contentColor: Color = MaterialTheme.colorScheme.onPrimary,
+    /** 아웃라인 버튼과 나란히 둘 때, 같은 두께의 테두리로 형태를 맞추기 위한 값. */
+    borderColor: Color? = null,
+    horizontalPadding: androidx.compose.ui.unit.Dp = Space.md,
 ) {
     Button(
         onClick = onClick,
         enabled = enabled,
         shape = Radius.button,
+        border = borderColor?.let { androidx.compose.foundation.BorderStroke(1.dp, it) },
         colors = ButtonDefaults.buttonColors(
             containerColor = containerColor,
             contentColor = contentColor,
         ),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(
-            horizontal = Space.md, vertical = Space.sm,
+            horizontal = horizontalPadding, vertical = Space.sm,
         ),
         modifier = modifier
             .fillMaxWidth()
@@ -235,17 +239,19 @@ fun SecondaryActionButton(
     modifier: Modifier = Modifier,
     leadingIcon: ImageVector? = null,
     contentColor: Color = MaterialTheme.colorScheme.onSurface,
+    borderColor: Color = Hairline,
+    horizontalPadding: androidx.compose.ui.unit.Dp = Space.md,
 ) {
     OutlinedButton(
         onClick = onClick,
         shape = Radius.button,
-        border = androidx.compose.foundation.BorderStroke(1.dp, Hairline),
+        border = androidx.compose.foundation.BorderStroke(1.dp, borderColor),
         colors = ButtonDefaults.outlinedButtonColors(
             containerColor = MaterialTheme.colorScheme.surface,
             contentColor = contentColor,
         ),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(
-            horizontal = Space.md, vertical = Space.sm,
+            horizontal = horizontalPadding, vertical = Space.sm,
         ),
         modifier = modifier
             .fillMaxWidth()

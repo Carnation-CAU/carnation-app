@@ -5,6 +5,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -36,6 +37,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -53,6 +55,7 @@ import com.carnation.fallalert.ui.theme.NavyDeep
 import com.carnation.fallalert.ui.theme.Space
 import com.carnation.fallalert.ui.theme.SuccessGreen
 import com.carnation.fallalert.ui.theme.TextSecondary
+import com.carnation.fallalert.R
 
 /** 홈에 한 번에 보여줄 미확인 알림 수. 나머지는 "더 보기"로 넘긴다. */
 private const val HOME_ALERT_LIMIT = 3
@@ -87,17 +90,31 @@ fun AlertListScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background),
     ) {
-        ScreenTitle(
-            title = "낙상 의심 알림",
-            actions = {
-                IconButton(onClick = onOpenSettings) {
-                    Icon(
-                        imageVector = Icons.Filled.Settings,
-                        contentDescription = "부모님 정보 설정",
-                    )
-                }
-            },
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                // 로고 왼쪽 끝을 아래 카드들과 같은 20dp 에 맞춘다.
+                // 오른쪽은 8dp — IconButton 이 내부에 12dp 를 갖고 있어서, 톱니 아이콘의
+                // 실제 여백이 20dp 로 떨어진다. 두 값이 달라야 시각적으로 정렬된다.
+                .padding(top = Space.lg, start = Space.xl, end = Space.sm),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.albat_logo),
+                contentDescription = "ALBAT Logo",
+                modifier = Modifier
+                    .width(120.dp)
+                    .height(40.dp)
+            )
+
+            IconButton(onClick = onOpenSettings) {
+                Icon(
+                    imageVector = Icons.Filled.Settings,
+                    contentDescription = "부모님 정보 설정",
+                )
+            }
+        }
 
         ConnectionBanner(
             state = connection,

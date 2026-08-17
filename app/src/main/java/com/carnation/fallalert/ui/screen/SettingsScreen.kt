@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.sp
 import com.carnation.fallalert.model.ParentProfile
 import com.carnation.fallalert.ui.theme.CarnationTheme
 import com.carnation.fallalert.ui.theme.Hairline
@@ -197,9 +198,11 @@ private fun MessagePreview(profile: ParentProfile) {
         modifier = Modifier.padding(bottom = Space.sm, start = Space.xs),
     )
     AppCard {
+        // 줄바꿈이 들어간 실제 본문을 그대로 보여준다. 문자 앱에서 보이는 모양과 같아야
+        // 저장 전에 "이렇게 가는구나"가 확인된다. 행간을 조금 벌려 훑기 쉽게 했다.
         Text(
             text = profile.emergencyMessage(),
-            style = MaterialTheme.typography.bodyLarge,
+            style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 24.sp),
             color = MaterialTheme.colorScheme.onSurface,
         )
     }

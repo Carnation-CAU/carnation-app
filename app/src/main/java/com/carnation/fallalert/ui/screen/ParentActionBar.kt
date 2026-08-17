@@ -7,26 +7,25 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Call
-import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import com.carnation.fallalert.model.ParentProfile
 import com.carnation.fallalert.ui.theme.CarnationTheme
+import com.carnation.fallalert.ui.theme.DangerRed
 import com.carnation.fallalert.ui.theme.Space
 import com.carnation.fallalert.util.EmergencyActions
 
 /**
  * 홈 · 상세 하단에 고정되는 대응 버튼 두 개.
  *
- * 전화는 아웃라인(보조), 119 는 블루 채움(주요). 119 에 빨강을 쓰지 않는 건 이 디자인에서
- * 빨강이 "낙상 의심"만 뜻하기 때문이다 — 버튼까지 빨개지면 목록의 낙상 카드가 묻힌다.
+ * 두 버튼은 폭 · 모서리 · 테두리 두께가 같고 색만 다르다. 전화는 흰 면 + 회색 테두리,
+ * 119 는 빨강 채움.
  *
  * 두 버튼 모두 앱이 직접 걸거나 보내지 않는다. 전화 앱 · 문자 앱을 열어줄 뿐이다.
  */
@@ -47,23 +46,28 @@ fun ParentActionBar(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(Space.sm),
         ) {
+            // 두 버튼은 같은 폭 · 같은 모서리 · 같은 1dp 테두리다. 색만 다르다.
+            // 아이콘을 뺀 건 폭을 균등하게 나누면서 "119에 정보 보내기"를 한 줄로
+            // 유지하려면 글자 자리가 필요했기 때문이다. 라벨이 아이콘보다 명확하다.
             SecondaryActionButton(
                 text = "부모님께 전화",
-                leadingIcon = Icons.Filled.Call,
                 onClick = { EmergencyActions.dial(context, profile.parentPhone) },
-                // 폭을 반씩 나누지 않는다. 119 문구가 더 길고, 두 행동의 무게도 다르다.
-                modifier = Modifier.weight(0.44f),
+                modifier = Modifier.weight(1f),
+                horizontalPadding = Space.sm,
             )
             PrimaryActionButton(
                 text = "119에 정보 보내기",
-                leadingIcon = Icons.Filled.LocalHospital,
                 onClick = {
                     EmergencyActions.composeEmergencySms(context, profile)
                     // 문자 앱으로 넘어가는 순간 기록한다. 실제 전송 여부는 앱이 알 수 없지만,
                     // 보호자가 119를 부르기로 결정한 사실 자체가 "도움 필요"다.
                     onEmergencyComposed?.invoke()
                 },
-                modifier = Modifier.weight(0.56f),
+                modifier = Modifier.weight(1f),
+                containerColor = DangerRed,
+                contentColor = Color.White,
+                borderColor = DangerRed,
+                horizontalPadding = Space.sm,
             )
         }
 
